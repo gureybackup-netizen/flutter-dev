@@ -27,32 +27,3 @@ jobs:
         with:
           name: vardchat-debug.apk
           path: build/app/outputs/flutter-apk/app-debug.apk
-
-  build-ios:
-    runs-on: macos-14
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.41.9'
-          cache: true
-          
-      - run: flutter pub get
-        
-      - run: flutter build ios --no-codesign --debug
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
-          CODE_SIGNING_ALLOWED: 'NO'
-          
-      - name: Create IPA
-        run: |
-          mkdir -p Payload
-          cp -R build/ios/iphoneos/Runner.app Payload/
-          cd Payload && zip -r ../VardChat.ipa . && cd ..
-          
-      - uses: actions/upload-artifact@v4
-        with:
-          name: VardChat.ipa
-          path: VardChat.ipa
