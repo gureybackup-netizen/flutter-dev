@@ -81,8 +81,6 @@ class AuthService {
     await _supabase.auth.signOut();
   }
 
-  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange();
-
   dynamic get currentUser => _supabase.auth.currentUser;
 
   String? get currentUserId => _supabase.auth.currentUser?.id;

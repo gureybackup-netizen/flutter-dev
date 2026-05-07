@@ -20,8 +20,7 @@ final callServiceProvider = Provider((ref) => CallService());
 final supabaseClientProvider = Provider((ref) => Supabase.instance.client);
 
 final authStateProvider = StreamProvider<AuthState>((ref) {
-  final supabase = ref.watch(supabaseClientProvider);
-  return supabase.auth.onAuthStateChange();
+  return Supabase.instance.client.auth.onAuthStateChange();
 });
 
 final currentUserIdProvider = Provider<String?>((ref) {
