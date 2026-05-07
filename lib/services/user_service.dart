@@ -94,13 +94,16 @@ class UserService {
 
   Stream<VardUser?> watchUser(String uid) {
     return _supabase
-        .from('users')
-        .select()
-        .eq('id', uid)
-        .stream()
-        .map((event) {
-          if (event.isEmpty) return null;
-          return VardUser.fromMap(event.first, event.first['id']);
-        });
+        .channel('users:$uid')
+        .onPostgresChanges(
+          event: '*',
+          schema: 'public',
+          table: 'users',
+          filter: PostgrestFilter.equals('id', uid),
+          callback: (data) async {
+            return await getUserById(uid);
+          },
+        )
+        .map((_) => null);
   }
 }

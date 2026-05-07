@@ -1,5 +1,4 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 import '../core/constants.dart';
 
 class AuthService {
@@ -82,7 +81,7 @@ class AuthService {
     await _supabase.auth.signOut();
   }
 
-  Stream<dynamic> get authStateChanges {
+  Stream<AuthState> get authStateChanges {
     return _supabase.auth.onAuthStateChange();
   }
 

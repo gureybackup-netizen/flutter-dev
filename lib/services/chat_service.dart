@@ -55,16 +55,6 @@ class ChatService {
     }
   }
 
-  Stream<List<VardConversation>> watchConversations(String userId) {
-    return _supabase
-        .from('conversations')
-        .select()
-        .contains('participant_uids', [userId])
-        .order('last_message_at', ascending: false)
-        .stream()
-        .map((events) => events.map((e) => VardConversation.fromMap(e, e['id'])).toList());
-  }
-
   Future<List<VardConversation>> getConversations(String userId) async {
     final response = await _supabase
         .from('conversations')
@@ -118,16 +108,6 @@ class ChatService {
     } catch (e) {
       return null;
     }
-  }
-
-  Stream<List<VardMessage>> watchMessages(String conversationId) {
-    return _supabase
-        .from('messages')
-        .select()
-        .eq('conversation_id', conversationId)
-        .order('sent_at', ascending: true)
-        .stream()
-        .map((events) => events.map((e) => VardMessage.fromMap(e, e['id'])).toList());
   }
 
   Future<List<VardMessage>> getMessages(String conversationId, {int limit = 100}) async {

@@ -9,7 +9,6 @@ class CallService {
   final SupabaseClient _supabase = Supabase.instance.client;
   
   RTCPeerConnection? _peerConnection;
-  RTCDataChannel? _dataChannel;
   MediaStream? _localStream;
   RTCVideoRenderer? _localRenderer;
   RTCVideoRenderer? _remoteRenderer;
@@ -41,15 +40,10 @@ class CallService {
   Map<String, dynamic> get _iceServers => {
     'iceServers': [
       {'urls': 'stun:stun.l.google.com:19302'},
-      {
-        'urls': AppConstants.turnUrl,
-        'username': AppConstants.turnUsername,
-        'credential': AppConstants.turnCredential,
-      },
     ]
   };
 
-  Future<RTCPeerConnection> _createPeerConnection(bool isInitiator) async {
+  Future<RTCPeerConnection> _createPeerConnection() async {
     final pc = await createPeerConnection(_iceServers);
 
     pc.onIceCandidate = (candidate) {
@@ -83,23 +77,7 @@ class CallService {
       'call_id': _currentCallId,
       'candidate': candidate.candidate,
       'sdp_mid': candidate.sdpMid,
-      'sdp_mline_index': candidate.sdpMlineIndex,
-    });
-  }
-
-  void _setupIceCandidateListener() {
-    final table = _isInitiator ? 'callee_candidates' : 'caller_candidates';
-    
-    _supabase.from(table).stream(primaryKey: ['call_id']).listen((events) {
-      final candidates = events.where((e) => e['call_id'] == _currentCallId);
-      for (final candidate in candidates) {
-        final rtcCandidate = RTCIceCandidate(
-          candidate['candidate'],
-          candidate['sdp_mid'],
-          candidate['sdp_mline_index'],
-        );
-        _peerConnection?.addCandidate(rtcCandidate);
-      }
+      'sdp_m_line_index': candidate.sdpMLineIndex,
     });
   }
 
@@ -125,10 +103,10 @@ class CallService {
       'created_at': DateTime.now().toIso8601String(),
     });
 
-    _peerConnection = await _createPeerConnection(true);
+    _peerConnection = await _createPeerConnection();
 
     _localStream = await _getLocalStream(type == 'video');
-    await pc!.addStream(_localStream!);
+    await _peerConnection!.addStream(_localStream!);
 
     final offer = await _peerConnection!.createOffer();
     await _peerConnection!.setLocalDescription(offer);
@@ -136,9 +114,6 @@ class CallService {
     await _supabase.from('calls').update({
       'sdp_offer': offer.sdp,
     }).eq('id', callId);
-
-    _setupIceCandidateListener();
-    _watchCallStatus(callId);
 
     return callId;
   }
@@ -152,16 +127,6 @@ class CallService {
     return stream;
   }
 
-  Future<void> _watchCallStatus(String callId) async {
-    _supabase.from('calls').stream(primaryKey: ['id']).listen((events) {
-      final call = events.firstWhere((e) => e['id'] == callId, orElse: () => {});
-      if (call.isNotEmpty) {
-        final vardCall = VardCall.fromMap(call, call['id']);
-        _callStateController.add(vardCall);
-      }
-    });
-  }
-
   Future<void> answerCall(String callId, bool videoEnabled) async {
     _currentCallId = callId;
     _isInitiator = false;
@@ -170,10 +135,10 @@ class CallService {
     if (callData == null) return;
 
     _currentUserId = callData['callee_uid'];
-    _peerConnection = await _createPeerConnection(false);
+    _peerConnection = await _createPeerConnection();
 
     _localStream = await _getLocalStream(videoEnabled);
-    await _peerConnection!.addStream(_localStream);
+    await _peerConnection!.addStream(_localStream!);
 
     final offer = callData['sdp_offer'] as String?;
     if (offer != null) {
@@ -189,7 +154,6 @@ class CallService {
       'sdp_answer': answer.sdp,
     }).eq('id', callId);
 
-    _setupIceCandidateListener();
     onCallAnswered?.call('', callId);
   }
 

@@ -10,9 +10,12 @@ class CryptoService {
   final AesGcm _aesGcm = AesGcm.with256bits();
 
   Future<void> generateAndStoreKeyPair() async {
-    final keyPair = await _x25519.newKeyPair();
+    final keyPair = await _x25519.newKeyPairFromSeed(
+      Uint8List.fromList(List.generate(32, (i) => DateTime.now().microsecondsSinceEpoch % 256)),
+    );
+    
     final privateKey = await keyPair.extractPrivateKeyBytes();
-    final publicKey = await keyPair.extractPublicKey();
+    final publicKey = await keyPair.extractPublicKeyBytes();
 
     final privateKeyBase64 = base64Encode(privateKey);
     final publicKeyBase64 = base64Encode(publicKey);
@@ -27,12 +30,8 @@ class CryptoService {
 
   String getPublicKeyBase64(String privateKeyBase64) {
     final privateKeyBytes = base64Decode(privateKeyBase64);
-    final keyPair = SimpleKeyPairData(
-      privateKeyBytes,
-      publicKeyBytes: _x25519.publicKeyBytesFromPrivateKey(privateKeyBytes),
-      algorithm: X25519(),
-    );
-    return base64Encode(keyPair.publicKeyBytes);
+    final keyPair = _x25519.newKeyPairFromSeed(privateKeyBytes);
+    return base64Encode(keyPair as dynamic);
   }
 
   Future<String?> getPrivateKey() async {
@@ -52,19 +51,11 @@ class CryptoService {
       final privateKeyBytes = base64Decode(privateKeyBase64);
       final recipientPublicKeyBytes = base64Decode(recipientPublicKeyBase64);
 
-      final localKeyPair = SimpleKeyPairData(
-        privateKeyBytes,
-        publicKeyBytes: _x25519.publicKeyBytesFromPrivateKey(privateKeyBytes),
-        algorithm: X25519(),
-      );
-
-      final recipientPublicKey = SimplePublicKey(
-        recipientPublicKeyBytes,
-        algorithm: X25519(),
-      );
+      final localKeyPair = _x25519.newKeyPairFromSeed(privateKeyBytes);
+      final recipientPublicKey = SimplePublicKey(recipientPublicKeyBytes, type: X25519());
 
       final sharedSecret = await _x25519.sharedSecretKey(
-        keyPair: localKeyPair,
+        keyPair: await localKeyPair,
         remotePublicKey: recipientPublicKey,
       );
 
@@ -73,7 +64,7 @@ class CryptoService {
         outputLength: 32,
       );
 
-      final aesKey = await hdf.deriveKey(
+      final aesKey = await hkdf.deriveKey(
         secretKey: sharedSecret,
         info: utf8.encode('VardChat-E2EE'),
       );
@@ -86,13 +77,16 @@ class CryptoService {
         nonce: nonce,
       );
 
+      final ephemeralKeyPair = await _x25519.newKeyPair();
+      final ephemeralPublicKey = await ephemeralKeyPair.extractPublicKeyBytes();
+
       final nonceBase64 = base64Encode(secretBox.nonce);
       final ciphertextBase64 = base64Encode(secretBox.cipherText);
       final macBase64 = base64Encode(secretBox.mac.bytes);
 
-      final ephemeralPublicKey = base64Encode(localKeyPair.publicKeyBytes);
+      final ephemeralPublicKeyBase64 = base64Encode(ephemeralPublicKey);
 
-      return '$ephemeralPublicKey::$nonceBase64::$macBase64::$ciphertextBase64';
+      return '$ephemeralPublicKeyBase64::$nonceBase64::$macBase64::$ciphertextBase64';
     } catch (e) {
       rethrow;
     }
@@ -120,19 +114,11 @@ class CryptoService {
       final privateKeyBytes = base64Decode(privateKeyBase64);
       final ephemeralPublicKeyBytes = base64Decode(ephemeralPublicKeyBase64);
 
-      final localKeyPair = SimpleKeyPairData(
-        privateKeyBytes,
-        publicKeyBytes: _x25519.publicKeyBytesFromPrivateKey(privateKeyBytes),
-        algorithm: X25519(),
-      );
-
-      final ephemeralPublicKey = SimplePublicKey(
-        ephemeralPublicKeyBytes,
-        algorithm: X25519(),
-      );
+      final localKeyPair = _x25519.newKeyPairFromSeed(privateKeyBytes);
+      final ephemeralPublicKey = SimplePublicKey(ephemeralPublicKeyBytes, type: X25519());
 
       final sharedSecret = await _x25519.sharedSecretKey(
-        keyPair: localKeyPair,
+        keyPair: await localKeyPair,
         remotePublicKey: ephemeralPublicKey,
       );
 
