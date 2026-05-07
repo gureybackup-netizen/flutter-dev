@@ -42,11 +42,11 @@ class AuthService {
       return null;
     } on AuthException catch (e) {
       if (e.message.contains('already registered')) {
-        return ErrorMessages.usernameTaken;
+        return 'Username already taken';
       }
-      return ErrorMessages.connectionError;
+      return 'Connection error. Please try again.';
     } catch (e) {
-      return ErrorMessages.connectionError;
+      return 'Connection error. Please try again.';
     }
   }
 
@@ -63,17 +63,17 @@ class AuthService {
       );
 
       if (authResponse.user == null) {
-        return ErrorMessages.invalidCredentials;
+        return 'Invalid username or password';
       }
 
       return null;
     } on AuthException catch (e) {
       if (e.message.contains('invalid') || e.message.contains('Invalid')) {
-        return ErrorMessages.invalidCredentials;
+        return 'Invalid username or password';
       }
-      return ErrorMessages.connectionError;
+      return 'Connection error. Please try again.';
     } catch (e) {
-      return ErrorMessages.connectionError;
+      return 'Connection error. Please try again.';
     }
   }
 
@@ -81,15 +81,9 @@ class AuthService {
     await _supabase.auth.signOut();
   }
 
-  Stream<AuthState> get authStateChanges {
-    return _supabase.auth.onAuthStateChange();
-  }
+  Stream<AuthState> get authStateChanges => _supabase.auth.onAuthStateChange();
 
-  dynamic get currentUser {
-    return _supabase.auth.currentUser;
-  }
+  dynamic get currentUser => _supabase.auth.currentUser;
 
-  String? get currentUserId {
-    return _supabase.auth.currentUser?.id;
-  }
+  String? get currentUserId => _supabase.auth.currentUser?.id;
 }

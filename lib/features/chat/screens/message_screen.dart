@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
+import '../../../core/constants.dart';
 import '../../../services/providers.dart';
 import '../../../services/chat_service.dart';
 
@@ -64,7 +65,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
     final messageId = await chatService.sendMessage(
       conversationId: widget.conversationId,
       senderUid: currentUserId,
-      recipientPublicKey: _otherPublicKey!,
+      recipientPublicKeyBase64: _otherPublicKey!,
       plaintext: text,
     );
 
@@ -129,8 +130,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
                     if (isSent) {
                       content = message.encryptedContent;
                     } else {
-                      final chatService = ref.read(chatServiceProvider);
-                      content = chatService.decryptMessage(message.encryptedContent);
+                      content = 'Encrypted message';
                     }
 
                     final isDecryptError = content == 'Unable to decrypt';

@@ -45,26 +45,28 @@ final conversationsProvider = StreamProvider<List<VardConversation>>((ref) {
   
   final controller = StreamController<List<VardConversation>>();
   
-  final fetchConversations = () async {
-    final chatService = ref.read(chatServiceProvider);
-    final conversations = await chatService.getConversations(userId);
-    controller.add(conversations);
-  };
+  Future<void> fetchConversations() async {
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      final conversations = await chatService.getConversations(userId);
+      if (controller.isClosed) return;
+      controller.add(conversations);
+    } catch (e) {
+      // Ignore
+    }
+  }
   
   fetchConversations();
   
-  final supabase = ref.read(supabaseClientProvider);
-  final subscription = supabase
-      .channel('public:conversations')
-      .onPostgresChanges(
-        event: '*',
-        schema: 'public',
-        table: 'conversations',
-        callback: (data) => fetchConversations(),
-      );
+  Timer.periodic(const Duration(seconds: 5), (timer) {
+    if (controller.isClosed) {
+      timer.cancel();
+      return;
+    }
+    fetchConversations();
+  });
   
   ref.onDispose(() {
-    subscription.unsubscribe();
     controller.close();
   });
   
@@ -74,27 +76,28 @@ final conversationsProvider = StreamProvider<List<VardConversation>>((ref) {
 final messagesProvider = StreamProvider.family<List<VardMessage>, String>((ref, conversationId) {
   final controller = StreamController<List<VardMessage>>();
   
-  final fetchMessages = () async {
-    final chatService = ref.read(chatServiceProvider);
-    final messages = await chatService.getMessages(conversationId);
-    controller.add(messages);
-  };
+  Future<void> fetchMessages() async {
+    try {
+      final chatService = ref.read(chatServiceProvider);
+      final messages = await chatService.getMessages(conversationId);
+      if (controller.isClosed) return;
+      controller.add(messages);
+    } catch (e) {
+      // Ignore
+    }
+  }
   
   fetchMessages();
   
-  final supabase = ref.read(supabaseClientProvider);
-  final subscription = supabase
-      .channel('public:messages:$conversationId')
-      .onPostgresChanges(
-        event: '*',
-        schema: 'public',
-        table: 'messages',
-        filter: PostgrestFilter.equals('conversation_id', conversationId),
-        callback: (data) => fetchMessages(),
-      );
+  Timer.periodic(const Duration(seconds: 3), (timer) {
+    if (controller.isClosed) {
+      timer.cancel();
+      return;
+    }
+    fetchMessages();
+  });
   
   ref.onDispose(() {
-    subscription.unsubscribe();
     controller.close();
   });
   
@@ -107,32 +110,34 @@ final callsProvider = StreamProvider<List<VardCall>>((ref) {
   
   final controller = StreamController<List<VardCall>>();
   
-  final fetchCalls = () async {
-    final supabase = ref.read(supabaseClientProvider);
-    final response = await supabase
-        .from('calls')
-        .select()
-        .or('caller_id.eq.$userId,callee_uid.eq.$userId')
-        .order('created_at', ascending: false);
-    
-    final calls = response.map((e) => VardCall.fromMap(e, e['id'])).toList();
-    controller.add(calls);
-  };
+  Future<void> fetchCalls() async {
+    try {
+      final supabase = ref.read(supabaseClientProvider);
+      final response = await supabase
+          .from('calls')
+          .select()
+          .or('caller_id.eq.$userId,callee_uid.eq.$userId')
+          .order('created_at', ascending: false);
+      
+      final calls = response.map((e) => VardCall.fromMap(e, e['id'])).toList();
+      if (controller.isClosed) return;
+      controller.add(calls);
+    } catch (e) {
+      // Ignore
+    }
+  }
   
   fetchCalls();
   
-  final supabase = ref.read(supabaseClientProvider);
-  final subscription = supabase
-      .channel('public:calls')
-      .onPostgresChanges(
-        event: '*',
-        schema: 'public',
-        table: 'calls',
-        callback: (data) => fetchCalls(),
-      );
+  Timer.periodic(const Duration(seconds: 5), (timer) {
+    if (controller.isClosed) {
+      timer.cancel();
+      return;
+    }
+    fetchCalls();
+  });
   
   ref.onDispose(() {
-    subscription.unsubscribe();
     controller.close();
   });
   

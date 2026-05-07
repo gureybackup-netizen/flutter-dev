@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
-import '../core/constants.dart';
 import '../models/call_record.dart';
 
 class CallService {
@@ -14,7 +13,6 @@ class CallService {
   RTCVideoRenderer? _remoteRenderer;
   
   String? _currentCallId;
-  String? _currentUserId;
   bool _isInitiator = false;
 
   final _callStateController = StreamController<VardCall>.broadcast();
@@ -69,12 +67,13 @@ class CallService {
   }
 
   Future<void> _sendIceCandidate(RTCIceCandidate candidate) async {
-    if (_currentCallId == null) return;
+    final callId = _currentCallId;
+    if (callId == null) return;
 
     final table = _isInitiator ? 'caller_candidates' : 'callee_candidates';
     
     await _supabase.from(table).insert({
-      'call_id': _currentCallId,
+      'call_id': callId,
       'candidate': candidate.candidate,
       'sdp_mid': candidate.sdpMid,
       'sdp_m_line_index': candidate.sdpMLineIndex,
@@ -87,7 +86,6 @@ class CallService {
     required String calleeUid,
     required String type,
   }) async {
-    _currentUserId = callerId;
     _isInitiator = true;
     
     final callId = const Uuid().v4();
@@ -134,7 +132,6 @@ class CallService {
     final callData = await _supabase.from('calls').select().eq('id', callId).maybeSingle();
     if (callData == null) return;
 
-    _currentUserId = callData['callee_uid'];
     _peerConnection = await _createPeerConnection();
 
     _localStream = await _getLocalStream(videoEnabled);
@@ -158,7 +155,8 @@ class CallService {
   }
 
   Future<void> endCall() async {
-    if (_currentCallId == null) return;
+    final callId = _currentCallId;
+    if (callId == null) return;
 
     _localStream?.getTracks().forEach((track) => track.stop());
     await _peerConnection?.close();
@@ -167,7 +165,7 @@ class CallService {
     await _supabase.from('calls').update({
       'status': 'ended',
       'ended_at': DateTime.now().toIso8601String(),
-    }).eq('id', _currentCallId);
+    }).eq('id', callId);
 
     _currentCallId = null;
     _peerConnection = null;
@@ -176,14 +174,15 @@ class CallService {
   }
 
   Future<void> _updateCallStatus(String status) async {
-    if (_currentCallId == null) return;
+    final callId = _currentCallId;
+    if (callId == null) return;
     
     final update = <String, dynamic>{'status': status};
     if (status == 'active') {
       update['started_at'] = DateTime.now().toIso8601String();
     }
     
-    await _supabase.from('calls').update(update).eq('id', _currentCallId);
+    await _supabase.from('calls').update(update).eq('id', callId);
   }
 
   RTCVideoRenderer? get localRenderer => _localRenderer;

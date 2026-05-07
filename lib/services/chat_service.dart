@@ -79,12 +79,12 @@ class ChatService {
   Future<String?> sendMessage({
     required String conversationId,
     required String senderUid,
-    required String recipientPublicKey,
+    required String recipientPublicKeyBase64,
     required String plaintext,
   }) async {
     try {
       final encryptedContent = await _cryptoService.encryptMessage(
-        recipientPublicKey: recipientPublicKey,
+        recipientPublicKeyBase64: recipientPublicKeyBase64,
         plaintext: plaintext,
       );
 
@@ -138,9 +138,9 @@ class ChatService {
     }).eq('id', messageId);
   }
 
-  String decryptMessage(String encryptedContent) {
+  Future<String> decryptMessage(String encryptedContent) async {
     try {
-      final plaintext = _cryptoService.decryptMessage(encryptedContent: encryptedContent);
+      final plaintext = await _cryptoService.decryptMessage(encryptedContent: encryptedContent);
       return plaintext;
     } catch (e) {
       return 'Unable to decrypt';
