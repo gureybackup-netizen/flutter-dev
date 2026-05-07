@@ -39,8 +39,7 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
     final userService = ref.read(userServiceProvider);
     await userService.updateUserDisplayName(userId, _displayNameController.text.trim());
 
-    final chatService = ref.read(chatServiceProvider);
-    // Update all conversations where user is a participant
+    // Note: Conversation display names would need separate update logic
     // This would require querying and updating all conversations
 
     ref.invalidate(currentUserProvider);

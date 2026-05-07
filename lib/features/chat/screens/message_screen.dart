@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../core/constants.dart';
 import '../../../services/providers.dart';
-import '../../../services/chat_service.dart';
 
 class MessageScreen extends ConsumerStatefulWidget {
   final String conversationId;
@@ -18,7 +17,6 @@ class MessageScreen extends ConsumerStatefulWidget {
 class _MessageScreenState extends ConsumerState<MessageScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-  String? _otherUserId;
   String? _otherUsername;
   String? _otherDisplayName;
   String? _otherPublicKey;
@@ -41,7 +39,6 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
         
         if (otherUser != null && mounted) {
           setState(() {
-            _otherUserId = otherUid;
             _otherUsername = otherUser.username;
             _otherDisplayName = otherUser.displayName;
             _otherPublicKey = otherUser.publicKey;
