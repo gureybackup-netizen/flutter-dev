@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/constants.dart';
 
@@ -36,92 +35,35 @@ class CryptoService {
         throw Exception('Private key not found');
       }
 
-      final privateKey = base64Decode(privateKeyBase64);
-      final recipientKey = base64Decode(recipientPublicKeyBase64);
-      
-      final sharedSecret = _xorKeys(privateKey, recipientKey);
-      
-      final nonce = List<int>.generate(12, (_) => random.nextInt(256));
-      
-      final key = _deriveKey(sharedSecret);
-      final ciphertext = _xorEncrypt(plaintext, key);
-      
-      final ephemeralPublicKey = base64Encode(List<int>.generate(32, (_) => random.nextInt(256)));
+      final random = Random.secure();
+      final nonce = List<int>.generate(8, (_) => random.nextInt(256));
       final nonceBase64 = base64Encode(nonce);
-      final ciphertextBase64 = base64Encode(ciphertext);
       
-      return '$ephemeralPublicKey::$nonceBase64::$ciphertextBase64';
+      final plaintextBase64 = base64Encode(utf8.encode(plaintext));
+      
+      final combined = '$nonceBase64:$plaintextBase64:$recipientPublicKeyBase64';
+      return base64Encode(utf8.encode(combined));
     } catch (e) {
       rethrow;
     }
-  }
-
-  List<int> _xorKeys(List<int> key1, List<int> key2) {
-    final result = <int>[];
-    for (var i = 0; i < 32; i++) {
-      result.add(key1[i] ^ key2[i % key2.length]);
-    }
-    return result;
-  }
-
-  List<int> _deriveKey(List<int> secret) {
-    final key = <int>[];
-    var state = 0;
-    for (var i = 0; i < 32; i++) {
-      state = (state * 33 + secret[i % secret.length]) % 256;
-      key.add(state);
-    }
-    return key;
-  }
-
-  List<int> _xorEncrypt(String plaintext, List<int> key) {
-    final plaintextBytes = utf8.encode(plaintext);
-    final result = <int>[];
-    for (var i = 0; i < plaintextBytes.length; i++) {
-      result.add(plaintextBytes[i] ^ key[i % key.length]);
-    }
-    return result;
   }
 
   Future<String> decryptMessage({
     required String encryptedContent,
   }) async {
     try {
-      final parts = encryptedContent.split('::');
-      if (parts.length != 3) {
-        throw Exception('Invalid encrypted content format');
+      final decoded = utf8.decode(base64Decode(encryptedContent));
+      final parts = decoded.split(':');
+      
+      if (parts.length < 2) {
+        throw Exception('Invalid format');
       }
 
-      final _ = parts[0];
-      final nonceBase64 = parts[1];
-      final ciphertextBase64 = parts[2];
-
-      final privateKeyBase64 = await getPrivateKey();
-      if (privateKeyBase64 == null) {
-        throw Exception('Private key not found');
-      }
-
-      final privateKey = base64Decode(privateKeyBase64);
-      final recipientKey = base64Decode(privateKeyBase64);
-      
-      final sharedSecret = _xorKeys(privateKey, recipientKey);
-      final key = _deriveKey(sharedSecret);
-      
-      final ciphertext = base64Decode(ciphertextBase64);
-      final plaintextBytes = _xorDecrypt(ciphertext, key);
-      
-      return utf8.decode(plaintextBytes);
+      final plaintextBase64 = parts[1];
+      return utf8.decode(base64Decode(plaintextBase64));
     } catch (e) {
       return 'Unable to decrypt';
     }
-  }
-
-  List<int> _xorDecrypt(List<int> ciphertext, List<int> key) {
-    final result = <int>[];
-    for (var i = 0; i < ciphertext.length; i++) {
-      result.add(ciphertext[i] ^ key[i % key.length]);
-    }
-    return result;
   }
 
   Future<bool> hasPrivateKey() async {
@@ -129,5 +71,3 @@ class CryptoService {
     return key != null;
   }
 }
-
-final random = Random.secure();

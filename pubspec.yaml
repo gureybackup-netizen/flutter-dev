@@ -21,9 +21,6 @@ dependencies:
   # Supabase
   supabase_flutter: ^2.8.0
 
-  # Encryption
-  cryptography: ^2.7.0
-
   # Secure Storage
   flutter_secure_storage: ^9.2.4
 
