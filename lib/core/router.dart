@@ -126,6 +126,10 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: RouteConstants.callHistory,
         builder: (context, state) => const CallHistoryScreen(),
       ),
+      GoRoute(
+        path: RouteConstants.notifications,
+        builder: (context, state) => const NotificationsScreen(),
+      ),
     ],
   );
 });

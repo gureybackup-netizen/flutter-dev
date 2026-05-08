@@ -203,6 +203,8 @@ class AppwriteService {
   }) async {
     try {
       final messageId = DateTime.now().millisecondsSinceEpoch.toString();
+      
+      // Save the message
       await databases.createDocument(
         databaseId: AppConstants.databaseId,
         collectionId: AppConstants.messagesCollectionId,
@@ -217,12 +219,75 @@ class AppwriteService {
           'is_deleted_by_sender': false,
         },
       );
+      
+      // Update conversation metadata
+      final conversationDoc = await databases.getDocument(
+        databaseId: AppConstants.databaseId,
+        collectionId: AppConstants.conversationsCollectionId,
+        documentId: conversationId,
+      );
+      
+      final conversation = conversationDoc.data;
+      final participantIds = conversation['participant_ids'] as List<dynamic>? ?? [];
+      final recipientId = participantIds.firstWhere(
+        (id) => id.toString() != senderId,
+        orElse: () => '',
+      );
+      
+      // Update conversation
+      await databases.updateDocument(
+        databaseId: AppConstants.databaseId,
+        collectionId: AppConstants.conversationsCollectionId,
+        documentId: conversationId,
+        data: {
+          'last_message_at': DateTime.now().toIso8601String(),
+          'last_message_preview': 'Encrypted message',
+          'unread_count': (conversation['unread_count'] as int? ?? 0) + 1,
+        },
+      );
+      
+// Save notification for recipient
+      await _saveNotification(
+        recipientId: recipientId,
+        type: 'message',
+        title: 'New message',
+        body: 'You have a new message',
+        conversationId: conversationId,
+      );
+
       return messageId;
     } catch (e) {
       return null;
     }
   }
-  
+
+  Future<void> _saveNotification({
+    required String recipientId,
+    required String type,
+    required String title,
+    required String body,
+    String? conversationId,
+  }) async {
+    try {
+      await databases.createDocument(
+        databaseId: AppConstants.databaseId,
+        collectionId: 'notifications',
+        documentId: DateTime.now().millisecondsSinceEpoch.toString(),
+        data: {
+          'user_id': recipientId,
+          'type': type,
+          'title': title,
+          'body': body,
+          'conversation_id': conversationId ?? '',
+          'created_at': DateTime.now().toIso8601String(),
+          'is_read': false,
+        },
+      );
+    } catch (e) {
+      // Silently fail - notification isn't critical
+    }
+  }
+
   Future<bool> deleteMessageForSelf(String messageId) async {
     try {
       await databases.updateDocument(
