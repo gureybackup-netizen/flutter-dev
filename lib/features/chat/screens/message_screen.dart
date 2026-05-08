@@ -88,13 +88,13 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
           IconButton(
             icon: const Icon(Icons.call),
             onPressed: () {
-              // TODO: Start voice call
+              context.go('/call/outgoing/${widget.conversationId}');
             },
           ),
           IconButton(
             icon: const Icon(Icons.videocam),
             onPressed: () {
-              // TODO: Start video call
+              context.go('/call/outgoing/${widget.conversationId}');
             },
           ),
         ],
@@ -211,9 +211,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
                 const SizedBox(width: 8),
                 IconButton(
                   icon: const Icon(Icons.send),
-                  onPressed: _otherPublicKey == null || _otherPublicKey!.isEmpty
-                      ? null
-                      : _sendMessage,
+                  onPressed: _sendMessage,
                 ),
               ],
             ),
