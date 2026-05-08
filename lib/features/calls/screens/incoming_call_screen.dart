@@ -4,63 +4,40 @@ import 'package:go_router/go_router.dart';
 
 class IncomingCallScreen extends ConsumerWidget {
   final String callId;
-
   const IncomingCallScreen({super.key, required this.callId});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        foregroundColor: Colors.white,
-        automaticallyImplyLeading: false,
-      ),
-      body: SafeArea(
+      body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Spacer(),
             const CircleAvatar(
               radius: 50,
-              backgroundColor: Colors.grey,
+              backgroundColor: Colors.blue,
               child: Icon(Icons.person, size: 50, color: Colors.white),
             ),
             const SizedBox(height: 24),
             const Text(
-              'Incoming Call',
-              style: TextStyle(
-                fontSize: 24,
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
+              'Incoming Call...',
+              style: TextStyle(color: Colors.white, fontSize: 24),
             ),
-            const SizedBox(height: 8),
-            Text(
-              callId.substring(0, 8),
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.grey,
-              ),
-            ),
-            const Spacer(),
-            Padding(
-              padding: const EdgeInsets.all(32),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.call_end, color: Colors.red),
-                    iconSize: 48,
-                    onPressed: () => context.go('/conversations'),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.call, color: Colors.green),
-                    iconSize: 48,
-                    onPressed: () => context.go('/call/active/$callId'),
-                  ),
-                ],
-              ),
+            const SizedBox(height: 48),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.call_end, color: Colors.red, size: 40),
+                  onPressed: () => context.go(RouteConstants.conversations),
+                ),
+                const SizedBox(width: 32),
+                IconButton(
+                  icon: const Icon(Icons.call, color: Colors.green, size: 40),
+                  onPressed: () => context.go('/call/active/$callId'),
+                ),
+              ],
             ),
           ],
         ),

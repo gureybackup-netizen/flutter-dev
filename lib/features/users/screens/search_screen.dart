@@ -13,7 +13,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final _searchController = TextEditingController();
-  List<dynamic> _searchResults = [];
+  List<Map<String, dynamic>> _searchResults = [];
   bool _isSearching = false;
 
   Future<void> _search() async {
@@ -29,8 +29,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       _isSearching = true;
     });
 
-    final userService = ref.read(userServiceProvider);
-    final results = await userService.searchUsers(query);
+    final appwrite = ref.read(appwriteServiceProvider);
+    final results = await appwrite.searchUsers(query);
 
     if (mounted) {
       setState(() {
@@ -40,20 +40,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     }
   }
 
-  Future<void> _startChat(String userId, String username, String displayName) async {
-    final currentUserId = ref.read(currentUserIdProvider);
+  Future<void> _startChat(String userId, String displayName) async {
+    final appwrite = ref.read(appwriteServiceProvider);
+    final currentUserId = await appwrite.getCurrentUserId();
     if (currentUserId == null) return;
 
-    final chatService = ref.read(chatServiceProvider);
-    final conversation = await chatService.getOrCreateConversation(
-      currentUserId: currentUserId,
+    // Create conversation ID
+    final ids = [currentUserId, userId]..sort();
+    final conversationId = '${ids[0]}_${ids[1]}';
+
+    await appwrite.createConversation(
+      conversationId: conversationId,
+      userId: currentUserId,
       otherUserId: userId,
-      otherUsername: username,
       otherDisplayName: displayName,
     );
 
-    if (conversation != null && mounted) {
-      context.go('/chat/${conversation.id}');
+    if (mounted) {
+      context.go('/chat/$conversationId');
     }
   }
 
@@ -74,7 +78,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search by username',
+                hintText: 'Search by name',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
@@ -100,7 +104,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     ? Center(
                         child: Text(
                           _searchController.text.isEmpty
-                              ? 'Enter a username to search'
+                              ? 'Enter a name to search'
                               : 'No users found',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
@@ -110,20 +114,23 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         separatorBuilder: (context, index) => const Divider(height: 1),
                         itemBuilder: (context, index) {
                           final user = _searchResults[index];
+                          final displayName = user['display_name'] as String? ?? 'Unknown';
+                          final uniqueId = user['unique_id'] as String? ?? '';
+
                           return ListTile(
                             leading: CircleAvatar(
                               backgroundColor: Theme.of(context).colorScheme.surface,
                               child: Text(
-                                user.displayName.isNotEmpty
-                                    ? user.displayName[0].toUpperCase()
-                                    : user.username[0].toUpperCase(),
+                                displayName.isNotEmpty
+                                    ? displayName[0].toUpperCase()
+                                    : '?',
                                 style: const TextStyle(fontWeight: FontWeight.bold),
                               ),
                             ),
-                            title: Text(user.displayName),
-                            subtitle: Text('@${user.username}'),
+                            title: Text(displayName),
+                            subtitle: Text('@$uniqueId'),
                             trailing: const Icon(Icons.chat_bubble_outline),
-                            onTap: () => _startChat(user.id, user.username, user.displayName),
+                            onTap: () => _startChat(user['unique_id'], displayName),
                           );
                         },
                       ),

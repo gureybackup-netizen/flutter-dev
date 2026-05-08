@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../services/providers.dart';
 import '../../../core/constants.dart';
+import '../../../services/providers.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -24,49 +24,47 @@ class SettingsScreen extends ConsumerWidget {
         error: (error, stack) => Center(child: Text('Error: $error')),
         data: (user) {
           if (user == null) {
-            return const Center(child: Text('Not logged in'));
+            return const Center(child: Text('Please log in'));
           }
+
+          final displayName = user['display_name'] as String? ?? 'Unknown';
+          final uniqueId = user['unique_id'] as String? ?? '';
 
           return ListView(
             children: [
+              const SizedBox(height: 20),
+              CircleAvatar(
+                radius: 50,
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                child: Text(
+                  displayName.isNotEmpty ? displayName[0].toUpperCase() : '?',
+                  style: const TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                displayName,
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                'ID: $uniqueId',
+                style: Theme.of(context).textTheme.bodySmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
               ListTile(
                 leading: const Icon(Icons.person),
                 title: const Text('Profile'),
-                subtitle: Text(user.displayName),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.go(RouteConstants.profileSettings),
               ),
-              const Divider(),
               ListTile(
                 leading: const Icon(Icons.notifications),
                 title: const Text('Notifications'),
-                trailing: Switch(
-                  value: user.notificationsEnabled,
-                  onChanged: (value) async {
-                    final userService = ref.read(userServiceProvider);
-                    await userService.updateNotificationsEnabled(user.id, value);
-                    ref.invalidate(currentUserProvider);
-                  },
-                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.go(RouteConstants.notificationSettings),
               ),
-              const Divider(),
-              ListTile(
-                leading: const Icon(Icons.dark_mode),
-                title: const Text('Light Mode'),
-                trailing: Switch(
-                  value: user.themePreference == 'light',
-                  onChanged: (value) async {
-                    final userService = ref.read(userServiceProvider);
-                    await userService.updateThemePreference(
-                      user.id,
-                      value ? 'light' : 'dark',
-                    );
-                    ref.read(themeProvider.notifier).state = value ? 'light' : 'dark';
-                    ref.invalidate(currentUserProvider);
-                  },
-                ),
-              ),
-              const Divider(),
               ListTile(
                 leading: const Icon(Icons.security),
                 title: const Text('Security'),
@@ -75,36 +73,12 @@ class SettingsScreen extends ConsumerWidget {
               ),
               const Divider(),
               ListTile(
-                leading: Icon(Icons.logout, color: Theme.of(context).colorScheme.error),
-                title: Text(
-                  'Log Out',
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text('Logout', style: TextStyle(color: Colors.red)),
                 onTap: () async {
-                  final confirm = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('Log Out'),
-                      content: const Text('Are you sure you want to log out?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: const Text('Cancel'),
-                        ),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: const Text('Log Out'),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirm == true) {
-                    final authService = ref.read(authServiceProvider);
-                    await authService.logout();
-                    if (context.mounted) {
-                      context.go(RouteConstants.welcome);
-                    }
+                  await ref.read(authNotifierProvider.notifier).logout();
+                  if (context.mounted) {
+                    context.go(RouteConstants.login);
                   }
                 },
               ),

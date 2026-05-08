@@ -1,19 +1,17 @@
 class AppConstants {
   static const String appName = 'VardChat';
   static const String packageName = 'com.vardapp.vardchat';
-  static const String internalEmailDomain = 'localhost.test';
 
-  // Supabase (currently working)
-  static const String supabaseUrl = 'https://kmizmjgsmphsqweldzfq.supabase.co';
-  static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttaXptamdzbXBoc3F3ZWxkemZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNzI3NTUsImV4cCI6MjA5Mzc0ODc1NX0.bX70xWfBFmpP-roNmAccGXDCNNflUGeHfS7oE790yd8';
+  // Appwrite Configuration
+  static const String appwriteEndpoint = 'https://cloud.appwrite.io/v1';
+  static const String appwriteProjectId = '69fdfc680008d1295d17';
+  static const String appwriteApiKey = 'standard_1bd886a318bec060893c9ffcaa88071c57c44980a979bdfc0053fb4e790101eabc2e324bfd4ba56f29a4a6a14d9dcc39468e9c55165b4374f8670bce79b9213fc9bdd5d9d5b279c34199aff634a69386aa275d83c70a70c289a1c963bb80ad876b89108559b0d546648cbeed8b12322126d6c7260f935f61b8254d81e66c427b';
 
-  static const String privateKeyStorageKey = 'e2e_private_key';
-  static const String turnCredentialKey = 'turn_credentials';
-
-  static const String stunServer = 'stun:stun.l.google.com:19302';
-  static const String turnUrl = 'turn:global.relay.metered.ca:80';
-  static const String turnUsername = 'demo';
-  static const String turnCredential = 'demo';
+  // Database IDs
+  static const String databaseId = 'vardchat';
+  static const String usersCollectionId = 'users';
+  static const String conversationsCollectionId = 'conversations';
+  static const String messagesCollectionId = 'messages';
 }
 
 class RouteConstants {
@@ -36,17 +34,13 @@ class RouteConstants {
 
 class DatabaseConstants {
   static const String usersTable = 'users';
-  static const String usernamesTable = 'usernames';
   static const String conversationsTable = 'conversations';
   static const String messagesTable = 'messages';
-  static const String callsTable = 'calls';
 }
 
 class ErrorMessages {
-  static const String invalidCredentials = 'Invalid username or password';
-  static const String usernameTaken = 'Username already taken';
+  static const String invalidCredentials = 'Invalid ID';
+  static const String userNotFound = 'User not found';
   static const String connectionError = 'Connection error. Please try again.';
-  static const String unableToDecrypt = 'Unable to decrypt';
-  static const String usernameInvalid = 'Username must be 3-20 characters, lowercase letters, numbers, and underscores only';
-  static const String passwordTooShort = 'Password must be at least 6 characters';
+  static const String usernameInvalid = 'ID must be 8 characters';
 }

@@ -18,8 +18,8 @@ dependencies:
   # Navigation
   go_router: ^14.8.1
 
-  # Supabase
-  supabase_flutter: ^2.8.0
+  # Appwrite
+  appwrite: ^16.0.0
 
   # Secure Storage
   flutter_secure_storage: ^9.2.4

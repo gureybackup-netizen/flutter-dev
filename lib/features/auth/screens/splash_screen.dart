@@ -1,37 +1,36 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/constants.dart';
+import '../../core/constants.dart';
+import '../../services/providers.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends ConsumerState<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeApp();
+    _checkAuth();
   }
 
-  Future<void> _initializeApp() async {
-    await Supabase.initialize(
-      url: AppConstants.supabaseUrl,
-      anonKey: AppConstants.supabaseAnonKey,
-    );
-    
+  Future<void> _checkAuth() async {
     await Future.delayed(const Duration(seconds: 2));
     
-    if (mounted) {
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session != null) {
-        context.go(RouteConstants.conversations);
-      } else {
-        context.go(RouteConstants.welcome);
-      }
+    if (!mounted) return;
+    
+    final userId = await ref.read(currentUserIdProvider.future);
+    
+    if (!mounted) return;
+    
+    if (userId != null) {
+      context.go(RouteConstants.conversations);
+    } else {
+      context.go(RouteConstants.welcome);
     }
   }
 
@@ -42,12 +41,15 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text(
-              'VardChat',
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-              ),
+            const Icon(
+              Icons.chat_bubble,
+              size: 80,
+              color: Colors.blue,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              AppConstants.appName,
+              style: Theme.of(context).textTheme.headlineMedium,
             ),
             const SizedBox(height: 24),
             const CircularProgressIndicator(),

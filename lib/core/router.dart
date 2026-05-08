@@ -19,12 +19,11 @@ import '../features/settings/screens/security_settings_screen.dart';
 import 'constants.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final isAuthenticated = ref.watch(authNotifierProvider);
   
   return GoRouter(
     initialLocation: RouteConstants.splash,
     redirect: (context, state) {
-      final isAuthenticated = authState.session != null;
       final currentPath = state.uri.path;
       
       final publicRoutes = [

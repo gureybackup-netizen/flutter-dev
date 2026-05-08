@@ -17,9 +17,7 @@ class MessageScreen extends ConsumerStatefulWidget {
 class _MessageScreenState extends ConsumerState<MessageScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
-  String? _otherUsername;
   String? _otherDisplayName;
-  String? _otherPublicKey;
 
   @override
   void initState() {
@@ -28,54 +26,58 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
   }
 
   Future<void> _loadConversationData() async {
-    final chatService = ref.read(chatServiceProvider);
-    final conversation = await chatService.getConversation(widget.conversationId);
-    if (conversation != null) {
-      final currentUserId = ref.read(currentUserIdProvider);
-      if (currentUserId != null) {
-        final otherUid = conversation.getOtherParticipantUid(currentUserId);
-        final userService = ref.read(userServiceProvider);
-        final otherUser = await userService.getUserById(otherUid);
+    final appwrite = ref.read(appwriteServiceProvider);
+    final currentUserId = await appwrite.getCurrentUserId();
+    
+    if (currentUserId != null) {
+      final conversations = await appwrite.getConversations(currentUserId);
+      final conversation = conversations.firstWhere(
+        (c) => c['id'] == widget.conversationId,
+        orElse: () => {},
+      );
+      
+      final displayNames = conversation['participant_display_names'] as Map<String, dynamic>?;
+      final participantIds = conversation['participant_ids'] as List<dynamic>?;
+      
+      if (displayNames != null && participantIds != null) {
+        final otherId = participantIds.firstWhere(
+          (id) => id.toString() != currentUserId,
+          orElse: () => '',
+        );
         
-        if (otherUser != null && mounted) {
-          setState(() {
-            _otherUsername = otherUser.username;
-            _otherDisplayName = otherUser.displayName;
-            _otherPublicKey = otherUser.publicKey;
-          });
-        }
+        setState(() {
+          _otherDisplayName = displayNames[otherId.toString()] as String? ?? 'Unknown';
+        });
       }
     }
-
-    final chatService2 = ref.read(chatServiceProvider);
-    await chatService2.markMessagesAsRead(widget.conversationId, ref.read(currentUserIdProvider) ?? '');
   }
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty || _otherPublicKey == null || _otherPublicKey!.isEmpty) return;
+    if (text.isEmpty) return;
 
-    final currentUserId = ref.read(currentUserIdProvider);
+    final appwrite = ref.read(appwriteServiceProvider);
+    final currentUserId = await appwrite.getCurrentUserId();
+    
     if (currentUserId == null) return;
 
-    final chatService = ref.read(chatServiceProvider);
-    final messageId = await chatService.sendMessage(
+    await appwrite.sendMessage(
       conversationId: widget.conversationId,
-      senderUid: currentUserId,
-      recipientPublicKeyBase64: _otherPublicKey!,
-      plaintext: text,
+      senderId: currentUserId,
+      content: text,
     );
 
-    if (messageId != null && mounted) {
+    if (mounted) {
       _messageController.clear();
+      ref.invalidate(messagesProvider(widget.conversationId));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final messagesAsync = ref.watch(messagesProvider(widget.conversationId));
-    final currentUserId = ref.watch(currentUserIdProvider);
-    final displayName = _otherDisplayName ?? _otherUsername ?? 'Chat';
+    final currentUserIdAsync = ref.watch(currentUserIdProvider);
+    final displayName = _otherDisplayName ?? 'Chat';
 
     return Scaffold(
       appBar: AppBar(
@@ -106,87 +108,58 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (error, stack) => Center(child: Text('Error: $error')),
               data: (messages) {
-                final filteredMessages = messages.where((m) => 
-                  m.senderUid == currentUserId || !m.isDeletedBySender
-                ).toList();
-
-                if (filteredMessages.isEmpty) {
-                  return const Center(
-                    child: Text('No messages yet'),
-                  );
+                if (messages.isEmpty) {
+                  return const Center(child: Text('No messages yet'));
                 }
 
-                return ListView.builder(
-                  controller: _scrollController,
-                  itemCount: filteredMessages.length,
-                  itemBuilder: (context, index) {
-                    final message = filteredMessages[index];
-                    final isSent = message.senderUid == currentUserId;
-
-                    String content;
-                    if (isSent) {
-                      content = message.encryptedContent;
-                    } else {
-                      content = 'Encrypted message';
+                return currentUserIdAsync.when(
+                  loading: () => const Center(child: CircularProgressIndicator()),
+                  error: (e, s) => Center(child: Text('Error: $e')),
+                  data: (currentUserId) {
+                    if (currentUserId == null) {
+                      return const Center(child: Text('Please log in'));
                     }
 
-                    final isDecryptError = content == 'Unable to decrypt';
+                    return ListView.builder(
+                      controller: _scrollController,
+                      itemCount: messages.length,
+                      itemBuilder: (context, index) {
+                        final message = messages[index];
+                        final isSent = message['sender_id'] == currentUserId;
+                        final content = message['content'] as String? ?? '';
+                        final sentAt = message['sent_at'] as String?;
 
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                      child: Row(
-                        mainAxisAlignment: isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
-                        children: [
-                          Container(
-                            constraints: BoxConstraints(
-                              maxWidth: MediaQuery.of(context).size.width * 0.75,
-                            ),
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: isSent
-                                  ? Theme.of(context).colorScheme.primary
-                                  : Theme.of(context).colorScheme.surface,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  isDecryptError ? 'Unable to decrypt' : content,
-                                  style: TextStyle(
-                                    fontStyle: isDecryptError ? FontStyle.italic : FontStyle.normal,
-                                    color: isDecryptError 
-                                        ? Theme.of(context).colorScheme.error 
-                                        : null,
-                                  ),
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: Row(
+                            mainAxisAlignment: isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: isSent 
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                const SizedBox(height: 4),
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
-                                    Text(
-                                      timeago.format(message.sentAt),
-                                      style: Theme.of(context).textTheme.labelSmall,
-                                    ),
-                                    if (isSent) ...[
-                                      const SizedBox(width: 4),
-                                      Icon(
-                                        message.deliveredAt != null
-                                            ? Icons.done_all
-                                            : Icons.done,
-                                        size: 14,
-                                        color: message.deliveredAt != null
-                                            ? Theme.of(context).colorScheme.primary
-                                            : Theme.of(context).textTheme.labelSmall?.color,
+                                    Text(content),
+                                    if (sentAt != null) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        timeago.format(DateTime.tryParse(sentAt) ?? DateTime.now()),
+                                        style: Theme.of(context).textTheme.labelSmall,
                                       ),
                                     ],
                                   ],
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     );
                   },
                 );

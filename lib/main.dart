@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:appwrite/appwrite.dart';
 import 'core/constants.dart';
 import 'core/theme.dart';
 import 'core/router.dart';
@@ -9,10 +9,9 @@ import 'services/providers.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Supabase.initialize(
-    url: AppConstants.supabaseUrl,
-    anonKey: AppConstants.supabaseAnonKey,
-  );
+  Client()
+      .setEndpoint(AppConstants.appwriteEndpoint)
+      .setProject(AppConstants.appwriteProjectId);
 
   runApp(
     const ProviderScope(
