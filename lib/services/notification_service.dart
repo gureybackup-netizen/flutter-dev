@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class NotificationService {
@@ -10,14 +9,10 @@ class NotificationService {
   Future<bool> initialize() async {
     try {
       const androidSettings = AndroidInitializationSettings(
-        onDidReceiveBackgroundNotificationResponse: _onBackgroundNotification,
+        '@mipmap/ic_launcher',
       );
       
-      const iosSettings = DarwinInitializationSettings(
-        requestAlertPermission: true,
-        requestBadgePermission: true,
-        requestSoundPermission: true,
-      );
+      const iosSettings = DarwinInitializationSettings();
       
       const settings = InitializationSettings(
         android: androidSettings,
@@ -31,10 +26,6 @@ class NotificationService {
     } catch (e) {
       return false;
     }
-  }
-  
-  static void _onBackgroundNotification(NotificationResponse response) {
-    // Handle background notification tap
   }
   
   static void _onNotificationTapped(NotificationResponse response) {

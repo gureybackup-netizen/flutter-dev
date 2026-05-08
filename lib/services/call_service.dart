@@ -1,23 +1,13 @@
 import 'dart:async';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
 import '../core/constants.dart';
 import 'appwrite_service.dart';
 
-final callServiceProvider = Provider((ref) => CallService(ref));
-
 class CallService {
-  final Ref _ref;
   RTCPeerConnection? _peerConnection;
   MediaStream? _localStream;
   MediaStream? _remoteStream;
   String? _currentCallId;
-  StreamSubscription? _offerSubscription;
-  StreamSubscription? _answerSubscription;
-  StreamSubscription? _callerCandidatesSubscription;
-  StreamSubscription? _calleeCandidatesSubscription;
-  
-  CallService(this._ref);
 
   Future<String?> initiateCall({
     required String conversationId,
@@ -27,7 +17,7 @@ class CallService {
     required String callType,
   }) async {
     try {
-      final appwrite = _ref.read(appwriteServiceProvider);
+      final appwrite = AppwriteService();
       final callId = DateTime.now().millisecondsSinceEpoch.toString();
       _currentCallId = callId;
       
@@ -93,12 +83,12 @@ class CallService {
     
     _peerConnection = await createPeerConnection(configuration);
     
-    _peerConnection!.onIceCandidate = (candidate) {
-      final appwrite = _ref.read(appwriteServiceProvider);
+    _peerConnection!.onIceCandidate = (candidate) async {
+      final appwrite = AppwriteService();
       appwrite.databases.createDocument(
         databaseId: AppConstants.databaseId,
-        collectionId: AppConstants.callsCollectionId,
-        documentId: '${_currentCallId}_${DateTime.now().millisecondsSinceEpoch}',
+        collectionId: '${AppConstants.callsCollectionId}/$_currentCallId/ice_candidates',
+        documentId: DateTime.now().millisecondsSinceEpoch.toString(),
         data: {
           'call_id': _currentCallId,
           'candidate': candidate.candidate,
@@ -112,16 +102,11 @@ class CallService {
       _remoteStream = event.streams.first;
     };
   }
-  
+
   MediaStream? get localStream => _localStream;
   MediaStream? get remoteStream => _remoteStream;
   
   Future<void> dispose() async {
-    await _offerSubscription?.cancel();
-    await _answerSubscription?.cancel();
-    await _callerCandidatesSubscription?.cancel();
-    await _calleeCandidatesSubscription?.cancel();
-    
     await _localStream?.dispose();
     await _remoteStream?.dispose();
     await _peerConnection?.close();
