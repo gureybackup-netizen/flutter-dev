@@ -3,6 +3,7 @@ class AppConstants {
   static const String packageName = 'com.vardapp.vardchat';
   static const String internalEmailDomain = 'localhost.test';
 
+  // Supabase (currently working)
   static const String supabaseUrl = 'https://kmizmjgsmphsqweldzfq.supabase.co';
   static const String supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImttaXptamdzbXBoc3F3ZWxkemZxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzgxNzI3NTUsImV4cCI6MjA5Mzc0ODc1NX0.bX70xWfBFmpP-roNmAccGXDCNNflUGeHfS7oE790yd8';
 
