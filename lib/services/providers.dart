@@ -19,9 +19,37 @@ final callServiceProvider = Provider((ref) => CallService());
 
 final supabaseClientProvider = Provider((ref) => Supabase.instance.client);
 
+class AuthNotifier extends StateNotifier<AuthState> {
+  Timer? _timer;
+  
+  AuthNotifier() : super(AuthState(AuthChangeEvent.initialSession, Supabase.instance.client.auth.currentSession)) {
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      final session = Supabase.instance.client.auth.currentSession;
+      final event = session != null ? AuthChangeEvent.signedIn : AuthChangeEvent.signedOut;
+      if (state.event != event || state.session != session) {
+        state = AuthState(event, session);
+      }
+    });
+  }
+  
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+  
+  void forceRefresh() {
+    final session = Supabase.instance.client.auth.currentSession;
+    state = AuthState(session != null ? AuthChangeEvent.signedIn : AuthChangeEvent.signedOut, session);
+  }
+}
+
+final authNotifierProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
+  return AuthNotifier();
+});
+
 final authStateProvider = Provider<AuthState>((ref) {
-  final session = Supabase.instance.client.auth.currentSession;
-  return AuthState(session != null ? AuthChangeEvent.signedIn : AuthChangeEvent.initialSession, session);
+  return ref.watch(authNotifierProvider);
 });
 
 final currentUserIdProvider = Provider<String?>((ref) {
