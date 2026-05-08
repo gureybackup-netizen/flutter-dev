@@ -37,7 +37,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
           _errorMessage = error;
         });
       } else {
-        context.go(RouteConstants.conversations);
+        context.go(RouteConstants.home);
       }
     }
   }

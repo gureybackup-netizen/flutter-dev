@@ -1,33 +1,30 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../services/providers.dart';
-import '../features/auth/screens/splash_screen.dart';
 import '../features/auth/screens/welcome_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/register_screen.dart';
-import '../features/chat/screens/conversations_screen.dart';
+import '../features/home/home_screen.dart';
 import '../features/chat/screens/message_screen.dart';
 import '../features/users/screens/search_screen.dart';
 import '../features/calls/screens/outgoing_call_screen.dart';
 import '../features/calls/screens/incoming_call_screen.dart';
 import '../features/calls/screens/active_call_screen.dart';
-import '../features/calls/screens/call_history_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/settings/screens/profile_settings_screen.dart';
-import '../features/settings/screens/notification_settings_screen.dart';
-import '../features/settings/screens/security_settings_screen.dart';
+import '../features/settings/screens/privacy_policy_screen.dart';
+import '../features/settings/screens/terms_screen.dart';
 import 'constants.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final isAuthenticated = ref.watch(authNotifierProvider);
   
   return GoRouter(
-    initialLocation: RouteConstants.splash,
+    initialLocation: RouteConstants.welcome,
     redirect: (context, state) {
       final currentPath = state.uri.path;
       
       final publicRoutes = [
-        RouteConstants.splash,
         RouteConstants.welcome,
         RouteConstants.login,
         RouteConstants.register,
@@ -40,16 +37,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
       
       if (isAuthenticated && isPublicRoute) {
-        return RouteConstants.conversations;
+        return RouteConstants.home;
       }
       
       return null;
     },
     routes: [
-      GoRoute(
-        path: RouteConstants.splash,
-        builder: (context, state) => const SplashScreen(),
-      ),
       GoRoute(
         path: RouteConstants.welcome,
         builder: (context, state) => const WelcomeScreen(),
@@ -63,8 +56,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const RegisterScreen(),
       ),
       GoRoute(
+        path: RouteConstants.home,
+        builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
         path: RouteConstants.conversations,
-        builder: (context, state) => const ConversationsScreen(),
+        builder: (context, state) => const HomeScreen(),
       ),
       GoRoute(
         path: RouteConstants.search,
@@ -99,10 +96,6 @@ final routerProvider = Provider<GoRouter>((ref) {
         },
       ),
       GoRoute(
-        path: RouteConstants.callHistory,
-        builder: (context, state) => const CallHistoryScreen(),
-      ),
-      GoRoute(
         path: RouteConstants.settings,
         builder: (context, state) => const SettingsScreen(),
       ),
@@ -111,8 +104,12 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ProfileSettingsScreen(),
       ),
       GoRoute(
-        path: RouteConstants.notificationSettings,
-        builder: (context, state) => const NotificationSettingsScreen(),
+        path: RouteConstants.privacyPolicy,
+        builder: (context, state) => const PrivacyPolicyScreen(),
+      ),
+      GoRoute(
+        path: RouteConstants.terms,
+        builder: (context, state) => const TermsScreen(),
       ),
       GoRoute(
         path: RouteConstants.securitySettings,

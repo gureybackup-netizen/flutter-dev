@@ -15,7 +15,7 @@ class SettingsScreen extends ConsumerWidget {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(RouteConstants.conversations),
+          onPressed: () => context.go(RouteConstants.home),
         ),
         title: const Text('Settings'),
       ),
@@ -70,6 +70,19 @@ class SettingsScreen extends ConsumerWidget {
                 title: const Text('Security'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.go(RouteConstants.securitySettings),
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.privacy_tip),
+                title: const Text('Privacy Policy'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.go(RouteConstants.privacyPolicy),
+              ),
+              ListTile(
+                leading: const Icon(Icons.description),
+                title: const Text('Terms & Conditions'),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.go(RouteConstants.terms),
               ),
               const Divider(),
               ListTile(

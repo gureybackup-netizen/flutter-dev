@@ -15,21 +15,20 @@ class AppConstants {
 }
 
 class RouteConstants {
-  static const String splash = '/splash';
   static const String welcome = '/welcome';
   static const String login = '/login';
   static const String register = '/register';
+  static const String home = '/home';
   static const String conversations = '/conversations';
   static const String search = '/search';
   static const String chat = '/chat/:conversationId';
   static const String callOutgoing = '/call/outgoing/:callId';
   static const String callIncoming = '/call/incoming/:callId';
   static const String callActive = '/call/active/:callId';
-  static const String callHistory = '/calls/history';
   static const String settings = '/settings';
   static const String profileSettings = '/settings/profile';
-  static const String notificationSettings = '/settings/notifications';
-  static const String securitySettings = '/settings/security';
+  static const String privacyPolicy = '/settings/privacy';
+  static const String terms = '/settings/terms';
 }
 
 class DatabaseConstants {

@@ -47,7 +47,6 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
           _errorMessage = error;
         });
       } else {
-        // Get the generated ID from secure storage
         final appwrite = ref.read(appwriteServiceProvider);
         final userId = await appwrite.getCurrentUserId();
         
@@ -78,122 +77,139 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       appBar: AppBar(
         title: const Text('Sign Up'),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (!_showId) ...[
-              const Text(
-                'Create Your Account',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+      body: SafeArea(
+        child: _showId ? _buildConfirmationView() : _buildRegisterForm(),
+      ),
+    );
+  }
+
+  Widget _buildRegisterForm() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Text(
+            'Create Your Account',
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Enter your name to get started',
+            style: TextStyle(color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          TextField(
+            controller: _nameController,
+            decoration: const InputDecoration(
+              labelText: 'Your Name',
+              hintText: 'Enter your display name',
+              prefixIcon: Icon(Icons.person),
+            ),
+            textCapitalization: TextCapitalization.words,
+          ),
+          const SizedBox(height: 16),
+          if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: Text(
+                _errorMessage!,
+                style: const TextStyle(color: Colors.red),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Enter your name to get started',
-                style: TextStyle(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Your Name',
-                  hintText: 'Enter your display name',
-                  prefixIcon: Icon(Icons.person),
-                ),
-                textCapitalization: TextCapitalization.words,
-              ),
-              const SizedBox(height: 16),
-              if (_errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 16),
-                  child: Text(
-                    _errorMessage!,
-                    style: const TextStyle(color: Colors.red),
-                    textAlign: TextAlign.center,
+            ),
+          ElevatedButton(
+            onPressed: _isLoading ? null : _register,
+            child: _isLoading
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Sign Up'),
+          ),
+          const SizedBox(height: 24),
+          TextButton(
+            onPressed: () => context.go(RouteConstants.login),
+            child: const Text('Already have an account? Login'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConfirmationView() {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        children: [
+          const SizedBox(height: 40),
+          const Icon(
+            Icons.check_circle,
+            color: Colors.green,
+            size: 80,
+          ),
+          const SizedBox(height: 24),
+          const Text(
+            'Account Created!',
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 32),
+          const Text(
+            'Your Unique ID',
+            style: TextStyle(fontSize: 16, color: Colors.grey),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+            decoration: BoxDecoration(
+              color: Colors.blue.shade50,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.blue.shade100),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _generatedId ?? '...',
+                  style: const TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 3,
+                    fontFamily: 'monospace',
                   ),
                 ),
-              ElevatedButton(
-                onPressed: _isLoading ? null : _register,
-                child: _isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Sign Up'),
-              ),
-              const SizedBox(height: 24),
-              TextButton(
-                onPressed: () => context.go(RouteConstants.login),
-                child: const Text('Already have an account? Login'),
-              ),
-            ] else ...[
-              const Icon(
-                Icons.check_circle,
-                color: Colors.green,
-                size: 64,
-              ),
-              const SizedBox(height: 16),
-              const Text(
-                'Account Created!',
-                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                'Save your unique ID - you need it to log in',
-                style: TextStyle(color: Colors.grey),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
+                const SizedBox(width: 12),
+                IconButton(
+                  onPressed: _copyId,
+                  icon: const Icon(Icons.copy, size: 20),
+                  tooltip: 'Copy ID',
                 ),
-                child: Column(
-                  children: [
-                    const Text(
-                      'Your Vard ID',
-                      style: TextStyle(color: Colors.grey),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _generatedId ?? '...',
-                      style: const TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 2,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: _copyId,
-                      icon: const Icon(Icons.copy),
-                      label: const Text('Copy'),
-                    ),
-                  ],
-                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Tap copy to save your ID',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          ),
+          const Spacer(),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _continueToApp,
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 16),
               ),
-              const SizedBox(height: 24),
-              const Text(
-                'Write this down! You will need it to log in.',
-                style: TextStyle(color: Colors.orange),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _continueToApp,
-                child: const Text('Continue to App'),
-              ),
-            ],
-          ],
-        ),
+              child: const Text('Continue', style: TextStyle(fontSize: 18)),
+            ),
+          ),
+          const SizedBox(height: 16),
+        ],
       ),
     );
   }

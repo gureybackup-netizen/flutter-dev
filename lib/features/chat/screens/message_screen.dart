@@ -139,7 +139,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
                                 decoration: BoxDecoration(
                                   color: isSent 
                                       ? Theme.of(context).colorScheme.primary
-                                      : Theme.of(context).colorScheme.surface,
+                                      : Colors.grey.shade200,
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Column(
@@ -148,9 +148,24 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
                                     Text(content),
                                     if (sentAt != null) ...[
                                       const SizedBox(height: 4),
-                                      Text(
-                                        timeago.format(DateTime.tryParse(sentAt) ?? DateTime.now()),
-                                        style: Theme.of(context).textTheme.labelSmall,
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(
+                                            timeago.format(DateTime.tryParse(sentAt) ?? DateTime.now()),
+                                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                              color: isSent ? Colors.white70 : Colors.grey,
+                                            ),
+                                          ),
+                                          if (isSent) ...[
+                                            const SizedBox(width: 4),
+                                            Icon(
+                                              Icons.done_all,
+                                              size: 14,
+                                              color: Colors.white70,
+                                            ),
+                                          ],
+                                        ],
                                       ),
                                     ],
                                   ],
