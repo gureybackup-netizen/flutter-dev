@@ -41,10 +41,13 @@ class AuthService {
 
       return null;
     } on AuthException catch (e) {
-      if (e.message.contains('already registered')) {
+      if (e.message.contains('already registered') || e.message.contains('already exists')) {
         return 'Username already taken';
       }
-      return 'Connection error. Please try again.';
+      if (e.message.contains('rate limit') || e.message.contains('429')) {
+        return 'Server busy. Please try again in a few minutes.';
+      }
+      return 'Connection error: ${e.message}';
     } catch (e) {
       return 'Connection error. Please try again.';
     }
@@ -71,7 +74,10 @@ class AuthService {
       if (e.message.contains('invalid') || e.message.contains('Invalid')) {
         return 'Invalid username or password';
       }
-      return 'Connection error. Please try again.';
+      if (e.message.contains('rate limit') || e.message.contains('429')) {
+        return 'Server busy. Please try again in a few minutes.';
+      }
+      return 'Connection error: ${e.message}';
     } catch (e) {
       return 'Connection error. Please try again.';
     }
