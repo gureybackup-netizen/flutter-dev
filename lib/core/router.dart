@@ -10,36 +10,39 @@ import '../features/users/screens/search_screen.dart';
 import '../features/calls/screens/outgoing_call_screen.dart';
 import '../features/calls/screens/incoming_call_screen.dart';
 import '../features/calls/screens/active_call_screen.dart';
+import '../features/calls/screens/call_history_screen.dart';
 import '../features/settings/screens/settings_screen.dart';
 import '../features/settings/screens/profile_settings_screen.dart';
+import '../features/settings/screens/notification_settings_screen.dart';
+import '../features/settings/screens/security_settings_screen.dart';
 import '../features/settings/screens/privacy_policy_screen.dart';
 import '../features/settings/screens/terms_screen.dart';
 import 'constants.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final isAuthenticated = ref.watch(authNotifierProvider);
-  
+
   return GoRouter(
     initialLocation: RouteConstants.welcome,
     redirect: (context, state) {
       final currentPath = state.uri.path;
-      
+
       final publicRoutes = [
         RouteConstants.welcome,
         RouteConstants.login,
         RouteConstants.register,
       ];
-      
+
       final isPublicRoute = publicRoutes.contains(currentPath);
-      
+
       if (!isAuthenticated && !isPublicRoute) {
         return RouteConstants.welcome;
       }
-      
+
       if (isAuthenticated && isPublicRoute) {
         return RouteConstants.home;
       }
-      
+
       return null;
     },
     routes: [
@@ -104,6 +107,14 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const ProfileSettingsScreen(),
       ),
       GoRoute(
+        path: RouteConstants.notificationSettings,
+        builder: (context, state) => const NotificationSettingsScreen(),
+      ),
+      GoRoute(
+        path: RouteConstants.securitySettings,
+        builder: (context, state) => const SecuritySettingsScreen(),
+      ),
+      GoRoute(
         path: RouteConstants.privacyPolicy,
         builder: (context, state) => const PrivacyPolicyScreen(),
       ),
@@ -112,8 +123,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => const TermsScreen(),
       ),
       GoRoute(
-        path: RouteConstants.securitySettings,
-        builder: (context, state) => const SecuritySettingsScreen(),
+        path: RouteConstants.callHistory,
+        builder: (context, state) => const CallHistoryScreen(),
       ),
     ],
   );

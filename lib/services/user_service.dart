@@ -1,13 +1,33 @@
-import '../services/appwrite_service.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'providers.dart';
+
+final userServiceProvider = Provider((ref) => UserService(ref));
 
 class UserService {
-  final AppwriteService _appwrite = AppwriteService();
+  final Ref _ref;
 
-  Future<Map<String, dynamic>?> getUserById(String uid) async {
-    return await _appwrite.getUserByUniqueId(uid);
+  UserService(this._ref);
+
+  Future<Map<String, dynamic>?> getUserByUniqueId(String uniqueId) async {
+    final appwrite = _ref.read(appwriteServiceProvider);
+    return await appwrite.getUserByUniqueId(uniqueId);
   }
 
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
-    return await _appwrite.searchUsers(query);
+    final appwrite = _ref.read(appwriteServiceProvider);
+    return await appwrite.searchUsers(query);
+  }
+
+  Future<String?> createConversation({
+    required String userId,
+    required String otherUserId,
+    required String otherDisplayName,
+  }) async {
+    final appwrite = _ref.read(appwriteServiceProvider);
+    return await appwrite.createConversation(
+      userId: userId,
+      otherUserId: otherUserId,
+      otherDisplayName: otherDisplayName,
+    );
   }
 }

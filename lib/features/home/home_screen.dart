@@ -159,6 +159,10 @@ class _CallsTab extends ConsumerWidget {
         title: const Text('Calls'),
         actions: [
           IconButton(
+            icon: const Icon(Icons.history),
+            onPressed: () => context.go(RouteConstants.callHistory),
+          ),
+          IconButton(
             icon: const Icon(Icons.settings),
             onPressed: () => context.go(RouteConstants.settings),
           ),

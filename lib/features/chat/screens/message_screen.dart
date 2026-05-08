@@ -28,23 +28,23 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
   Future<void> _loadConversationData() async {
     final appwrite = ref.read(appwriteServiceProvider);
     final currentUserId = await appwrite.getCurrentUserId();
-    
+
     if (currentUserId != null) {
       final conversations = await appwrite.getConversations(currentUserId);
       final conversation = conversations.firstWhere(
         (c) => c['id'] == widget.conversationId,
-        orElse: () => {},
+        orElse: () => <String, dynamic>{},
       );
-      
+
       final displayNames = conversation['participant_display_names'] as Map<String, dynamic>?;
       final participantIds = conversation['participant_ids'] as List<dynamic>?;
-      
+
       if (displayNames != null && participantIds != null) {
         final otherId = participantIds.firstWhere(
           (id) => id.toString() != currentUserId,
           orElse: () => '',
         );
-        
+
         setState(() {
           _otherDisplayName = displayNames[otherId.toString()] as String? ?? 'Unknown';
         });
@@ -58,7 +58,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
 
     final appwrite = ref.read(appwriteServiceProvider);
     final currentUserId = await appwrite.getCurrentUserId();
-    
+
     if (currentUserId == null) return;
 
     await appwrite.sendMessage(
@@ -84,7 +84,7 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
         title: Text(displayName),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(RouteConstants.conversations),
+          onPressed: () => context.go(RouteConstants.home),
         ),
         actions: [
           IconButton(
@@ -134,41 +134,45 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
                           child: Row(
                             mainAxisAlignment: isSent ? MainAxisAlignment.end : MainAxisAlignment.start,
                             children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: isSent 
-                                      ? Theme.of(context).colorScheme.primary
-                                      : Colors.grey.shade200,
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Text(content),
-                                    if (sentAt != null) ...[
-                                      const SizedBox(height: 4),
-                                      Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Text(
-                                            timeago.format(DateTime.tryParse(sentAt) ?? DateTime.now()),
-                                            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                                              color: isSent ? Colors.white70 : Colors.grey,
-                                            ),
+                              GestureDetector(
+                                onLongPress: isSent ? () => _showDeleteDialog(context, message['id'] as String?) : null,
+                                child: Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isSent
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Colors.grey.shade200,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(content),
+                                      if (sentAt != null)
+                                        Padding(
+                                          padding: const EdgeInsets.only(top: 4),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                timeago.format(DateTime.tryParse(sentAt) ?? DateTime.now()),
+                                                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                                                  color: isSent ? Colors.white70 : Colors.grey,
+                                                ),
+                                              ),
+                                              if (isSent) ...[
+                                                const SizedBox(width: 4),
+                                                const Icon(
+                                                  Icons.done_all,
+                                                  size: 14,
+                                                  color: Colors.white70,
+                                                ),
+                                              ],
+                                            ],
                                           ),
-                                          if (isSent) ...[
-                                            const SizedBox(width: 4),
-                                            Icon(
-                                              Icons.done_all,
-                                              size: 14,
-                                              color: Colors.white70,
-                                            ),
-                                          ],
-                                        ],
-                                      ),
+                                        ),
                                     ],
-                                  ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -214,5 +218,34 @@ class _MessageScreenState extends ConsumerState<MessageScreen> {
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+
+  Future<void> _showDeleteDialog(BuildContext context, String? messageId) async {
+    if (messageId == null) return;
+
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Message'),
+        content: const Text('Delete this message for yourself? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      final appwrite = ref.read(appwriteServiceProvider);
+      await appwrite.deleteMessageForSelf(messageId);
+      ref.invalidate(messagesProvider(widget.conversationId));
+    }
   }
 }

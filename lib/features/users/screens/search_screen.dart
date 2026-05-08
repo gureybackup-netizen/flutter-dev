@@ -17,7 +17,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   bool _isSearching = false;
 
   Future<void> _search() async {
-    final query = _searchController.text.trim();
+    final query = _searchController.text.trim().toUpperCase();
     if (query.isEmpty) {
       setState(() {
         _searchResults = [];
@@ -29,8 +29,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       _isSearching = true;
     });
 
-    final appwrite = ref.read(appwriteServiceProvider);
-    final results = await appwrite.searchUsers(query);
+    final userService = ref.read(userServiceProvider);
+    final results = await userService.searchUsers(query);
 
     if (mounted) {
       setState(() {
@@ -41,22 +41,17 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   }
 
   Future<void> _startChat(String userId, String displayName) async {
-    final appwrite = ref.read(appwriteServiceProvider);
-    final currentUserId = await appwrite.getCurrentUserId();
+    final userService = ref.read(userServiceProvider);
+    final currentUserId = await ref.read(currentUserIdProvider.future);
     if (currentUserId == null) return;
 
-    // Create conversation ID
-    final ids = [currentUserId, userId]..sort();
-    final conversationId = '${ids[0]}_${ids[1]}';
-
-    await appwrite.createConversation(
-      conversationId: conversationId,
+    final conversationId = await userService.createConversation(
       userId: currentUserId,
       otherUserId: userId,
       otherDisplayName: displayName,
     );
 
-    if (mounted) {
+    if (conversationId != null && mounted) {
       context.go('/chat/$conversationId');
     }
   }
@@ -67,7 +62,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go(RouteConstants.conversations),
+          onPressed: () => context.go(RouteConstants.home),
         ),
         title: const Text('Search Users'),
       ),
@@ -130,7 +125,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                             title: Text(displayName),
                             subtitle: Text('@$uniqueId'),
                             trailing: const Icon(Icons.chat_bubble_outline),
-                            onTap: () => _startChat(user['unique_id'], displayName),
+                            onTap: () => _startChat(uniqueId, displayName),
                           );
                         },
                       ),

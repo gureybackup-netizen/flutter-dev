@@ -12,6 +12,7 @@ class AppConstants {
   static const String usersCollectionId = 'users';
   static const String conversationsCollectionId = 'conversations';
   static const String messagesCollectionId = 'messages';
+  static const String callsCollectionId = 'calls';
 }
 
 class RouteConstants {
@@ -29,6 +30,9 @@ class RouteConstants {
   static const String profileSettings = '/settings/profile';
   static const String privacyPolicy = '/settings/privacy';
   static const String terms = '/settings/terms';
+  static const String callHistory = '/calls/history';
+  static const String notificationSettings = '/settings/notifications';
+  static const String securitySettings = '/settings/security';
 }
 
 class DatabaseConstants {

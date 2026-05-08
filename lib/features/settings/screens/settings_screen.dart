@@ -65,6 +65,19 @@ class SettingsScreen extends ConsumerWidget {
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => context.go(RouteConstants.notificationSettings),
               ),
+              Consumer(
+                builder: (context, ref, _) {
+                  final theme = ref.watch(themeProvider);
+                  return SwitchListTile(
+                    secondary: const Icon(Icons.dark_mode),
+                    title: const Text('Dark Mode'),
+                    value: theme == 'dark',
+                    onChanged: (value) {
+                      ref.read(themeProvider.notifier).state = value ? 'dark' : 'light';
+                    },
+                  );
+                },
+              ),
               ListTile(
                 leading: const Icon(Icons.security),
                 title: const Text('Security'),

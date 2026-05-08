@@ -14,6 +14,7 @@ class ProfileSettingsScreen extends ConsumerStatefulWidget {
 class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
   final _displayNameController = TextEditingController();
   bool _isLoading = false;
+  bool _initialized = false;
 
   @override
   Widget build(BuildContext context) {
@@ -35,8 +36,9 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
             return const Center(child: Text('Please log in'));
           }
 
-          if (_displayNameController.text.isEmpty) {
+          if (!_initialized) {
             _displayNameController.text = user['display_name'] as String? ?? '';
+            _initialized = true;
           }
 
           return Padding(
@@ -44,7 +46,10 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text('Display Name'),
+                const Text(
+                  'Display Name',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 8),
                 TextField(
                   controller: _displayNameController,
@@ -52,15 +57,41 @@ class _ProfileSettingsScreenState extends ConsumerState<ProfileSettingsScreen> {
                     hintText: 'Enter your display name',
                   ),
                 ),
+                const SizedBox(height: 8),
+                Text(
+                  'Your ID: ${user['unique_id'] ?? "Unknown"}',
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'ID cannot be changed',
+                  style: TextStyle(color: Colors.grey, fontSize: 12),
+                ),
                 const SizedBox(height: 24),
                 ElevatedButton(
                   onPressed: _isLoading
                       ? null
                       : () async {
+                          if (_displayNameController.text.trim().isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Display name cannot be empty')),
+                            );
+                            return;
+                          }
+
                           setState(() => _isLoading = true);
-                          // For Appwrite, we'd update the user document
-                          // For now, just go back
-                          await Future.delayed(const Duration(milliseconds: 500));
+                          
+                          final appwrite = ref.read(appwriteServiceProvider);
+                          final userId = await appwrite.getCurrentUserId();
+                          
+                          if (userId != null) {
+                            await appwrite.updateUserDisplayName(
+                              userId: userId,
+                              displayName: _displayNameController.text.trim(),
+                            );
+                            ref.invalidate(currentUserProvider);
+                          }
+                          
                           if (mounted) {
                             setState(() => _isLoading = false);
                             ScaffoldMessenger.of(context).showSnackBar(

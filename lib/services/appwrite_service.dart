@@ -40,6 +40,7 @@ class AppwriteService {
           'unique_id': uniqueId,
           'display_name': displayName,
           'created_at': DateTime.now().toIso8601String(),
+          'notifications_enabled': true,
         },
       );
       await _secureStorage.write(key: 'user_id', value: uniqueId);
@@ -95,13 +96,45 @@ class AppwriteService {
     }
   }
   
+  Future<bool> updateUserDisplayName({required String userId, required String displayName}) async {
+    try {
+      await databases.updateDocument(
+        databaseId: AppConstants.databaseId,
+        collectionId: AppConstants.usersCollectionId,
+        documentId: userId,
+        data: {
+          'display_name': displayName,
+        },
+      );
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  Future<bool> updateUserNotificationSetting({required String userId, required bool enabled}) async {
+    try {
+      await databases.updateDocument(
+        databaseId: AppConstants.databaseId,
+        collectionId: AppConstants.usersCollectionId,
+        documentId: userId,
+        data: {
+          'notifications_enabled': enabled,
+        },
+      );
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
     try {
       final result = await databases.listDocuments(
         databaseId: AppConstants.databaseId,
         collectionId: AppConstants.usersCollectionId,
         queries: [
-          Query.contains('display_name', query),
+          Query.contains('unique_id', query.toUpperCase()),
           Query.limit(20),
         ],
       );
@@ -110,7 +143,7 @@ class AppwriteService {
       return [];
     }
   }
-  
+
   Future<List<Map<String, dynamic>>> getConversations(String userId) async {
     try {
       final result = await databases.listDocuments(
@@ -126,32 +159,34 @@ class AppwriteService {
       return [];
     }
   }
-  
+
   Future<String?> createConversation({
-    required String conversationId,
     required String userId,
     required String otherUserId,
     required String otherDisplayName,
   }) async {
     try {
+      final participants = [userId, otherUserId]..sort();
+      final conversationId = '${participants[0]}_${participants[1]}';
+      
       await databases.createDocument(
         databaseId: AppConstants.databaseId,
         collectionId: AppConstants.conversationsCollectionId,
         documentId: conversationId,
         data: {
           'id': conversationId,
-          'participant_ids': [userId, otherUserId],
+          'participant_ids': participants,
           'participant_display_names': {userId: 'Me', otherUserId: otherDisplayName},
           'last_message_at': DateTime.now().toIso8601String(),
           'unread_count': 0,
         },
       );
-      return null;
+      return conversationId;
     } catch (e) {
-      return e.toString();
+      return null;
     }
   }
-  
+
   Future<List<Map<String, dynamic>>> getMessages(String conversationId) async {
     try {
       final result = await databases.listDocuments(
@@ -163,7 +198,8 @@ class AppwriteService {
           Query.limit(100),
         ],
       );
-      return result.documents.map((doc) => doc.data).toList();
+      final messages = result.documents.map((doc) => doc.data).toList();
+      return messages.where((m) => m['is_deleted_by_sender'] != true).toList();
     } catch (e) {
       return [];
     }
@@ -187,11 +223,63 @@ class AppwriteService {
           'content': content,
           'sent_at': DateTime.now().toIso8601String(),
           'is_read': false,
+          'is_deleted_by_sender': false,
         },
       );
       return messageId;
     } catch (e) {
       return null;
+    }
+  }
+  
+  Future<bool> deleteMessageForSelf(String messageId) async {
+    try {
+      await databases.updateDocument(
+        databaseId: AppConstants.databaseId,
+        collectionId: AppConstants.messagesCollectionId,
+        documentId: messageId,
+        data: {
+          'is_deleted_by_sender': true,
+        },
+      );
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+  
+  Future<List<Map<String, dynamic>>> getCallHistory(String userId) async {
+    try {
+      final callerResult = await databases.listDocuments(
+        databaseId: AppConstants.databaseId,
+        collectionId: AppConstants.callsCollectionId,
+        queries: [
+          Query.equal('caller_id', [userId]),
+          Query.orderDesc('created_at'),
+          Query.limit(50),
+        ],
+      );
+      
+      final calleeResult = await databases.listDocuments(
+        databaseId: AppConstants.databaseId,
+        collectionId: AppConstants.callsCollectionId,
+        queries: [
+          Query.equal('callee_id', [userId]),
+          Query.orderDesc('created_at'),
+          Query.limit(50),
+        ],
+      );
+      
+      final allCalls = [...callerResult.documents.map((d) => d.data), ...calleeResult.documents.map((d) => d.data)];
+      allCalls.sort((a, b) {
+        final aTime = a['created_at'] as String? ?? '';
+        final bTime = b['created_at'] as String? ?? '';
+        return bTime.compareTo(aTime);
+      });
+      
+      return allCalls;
+    } catch (e) {
+      return [];
     }
   }
 }
