@@ -128,17 +128,36 @@ class AppwriteService {
     try {
       if (query.isEmpty) return [];
       
+      final upperQuery = query.toUpperCase();
+      
+      // Search by both unique_id and display_name
       final result = await databases.listDocuments(
         databaseId: AppConstants.databaseId,
         collectionId: AppConstants.usersCollectionId,
         queries: [
-          Query.startsWith('unique_id', query.toUpperCase()),
+          Query.or([
+            Query.startsWith('unique_id', upperQuery),
+            Query.startsWith('display_name', query),
+          ]),
           Query.limit(20),
         ],
       );
       return result.documents.map((doc) => doc.data).toList();
     } catch (e) {
-      return [];
+      // Fallback: try just unique_id
+      try {
+        final result = await databases.listDocuments(
+          databaseId: AppConstants.databaseId,
+          collectionId: AppConstants.usersCollectionId,
+          queries: [
+            Query.startsWith('unique_id', query.toUpperCase()),
+            Query.limit(20),
+          ],
+        );
+        return result.documents.map((doc) => doc.data).toList();
+      } catch (e2) {
+        return [];
+      }
     }
   }
 

@@ -73,7 +73,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             child: TextField(
               controller: _searchController,
               decoration: InputDecoration(
-                hintText: 'Search by name',
+                hintText: 'Search by name or ID',
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchController.text.isNotEmpty
                     ? IconButton(
