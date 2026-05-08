@@ -119,11 +119,13 @@ class AppwriteService {
 
   Future<List<Map<String, dynamic>>> searchUsers(String query) async {
     try {
+      if (query.isEmpty) return [];
+      
       final result = await databases.listDocuments(
         databaseId: AppConstants.databaseId,
         collectionId: AppConstants.usersCollectionId,
         queries: [
-          Query.contains('unique_id', query.toUpperCase()),
+          Query.startsWith('unique_id', query.toUpperCase()),
           Query.limit(20),
         ],
       );
