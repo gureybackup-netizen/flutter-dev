@@ -41,15 +41,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(
-              Icons.chat_bubble,
-              size: 80,
-              color: Colors.blue,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              AppConstants.appName,
-              style: Theme.of(context).textTheme.headlineMedium,
+            Image.asset(
+              'assets/images/vardchat_splash_v3.png',
+              width: 200,
+              fit: BoxFit.contain,
             ),
             const SizedBox(height: 24),
             const CircularProgressIndicator(),
