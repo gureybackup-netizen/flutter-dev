@@ -17,6 +17,7 @@ import '../features/settings/screens/notification_settings_screen.dart';
 import '../features/settings/screens/security_settings_screen.dart';
 import '../features/settings/screens/privacy_policy_screen.dart';
 import '../features/settings/screens/terms_screen.dart';
+import '../features/notifications/notifications_screen.dart';
 import 'constants.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
