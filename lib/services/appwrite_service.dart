@@ -13,7 +13,7 @@ class AppwriteService {
     _client = Client()
         .setEndpoint(AppConstants.appwriteEndpoint)
         .setProject(AppConstants.appwriteProjectId)
-        .setKey(AppConstants.appwriteApiKey);
+        .addHeader('X-Appwrite-Key', AppConstants.appwriteApiKey);
   }
   
   Client get client => _client;
