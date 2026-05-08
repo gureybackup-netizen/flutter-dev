@@ -1,10 +1,11 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import '../core/constants.dart';
 
 class CryptoService {
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+
+  static const String _privateKeyStorageKey = 'e2e_private_key';
 
   Future<void> generateAndStoreKeyPair() async {
     final random = Random.secure();
@@ -12,7 +13,7 @@ class CryptoService {
     final privateKeyBase64 = base64Encode(privateKey);
     
     await _secureStorage.write(
-      key: AppConstants.privateKeyStorageKey,
+      key: _privateKeyStorageKey,
       value: privateKeyBase64,
     );
   }
@@ -22,7 +23,7 @@ class CryptoService {
   }
 
   Future<String?> getPrivateKey() async {
-    return await _secureStorage.read(key: AppConstants.privateKeyStorageKey);
+    return await _secureStorage.read(key: _privateKeyStorageKey);
   }
 
   Future<String> encryptMessage({
@@ -30,19 +31,8 @@ class CryptoService {
     required String plaintext,
   }) async {
     try {
-      final privateKeyBase64 = await getPrivateKey();
-      if (privateKeyBase64 == null) {
-        throw Exception('Private key not found');
-      }
-
-      final random = Random.secure();
-      final nonce = List<int>.generate(8, (_) => random.nextInt(256));
-      final nonceBase64 = base64Encode(nonce);
-      
       final plaintextBase64 = base64Encode(utf8.encode(plaintext));
-      
-      final combined = '$nonceBase64:$plaintextBase64:$recipientPublicKeyBase64';
-      return base64Encode(utf8.encode(combined));
+      return plaintextBase64;
     } catch (e) {
       rethrow;
     }
@@ -52,15 +42,7 @@ class CryptoService {
     required String encryptedContent,
   }) async {
     try {
-      final decoded = utf8.decode(base64Decode(encryptedContent));
-      final parts = decoded.split(':');
-      
-      if (parts.length < 2) {
-        throw Exception('Invalid format');
-      }
-
-      final plaintextBase64 = parts[1];
-      return utf8.decode(base64Decode(plaintextBase64));
+      return utf8.decode(base64Decode(encryptedContent));
     } catch (e) {
       return 'Unable to decrypt';
     }
