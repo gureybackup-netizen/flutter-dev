@@ -36,8 +36,12 @@ dependencies:
   # UUID
   uuid: ^4.5.1
 
+  # Encryption
+  cryptography: ^2.7.0
+
   # Time formatting
   timeago: ^3.7.0
+  pointycastle: ^4.0.0
 
 dev_dependencies:
   flutter_test:
