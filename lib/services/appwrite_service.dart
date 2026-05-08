@@ -12,7 +12,8 @@ class AppwriteService {
   AppwriteService._internal() {
     _client = Client()
         .setEndpoint(AppConstants.appwriteEndpoint)
-        .setProject(AppConstants.appwriteProjectId);
+        .setProject(AppConstants.appwriteProjectId)
+        .setKey(AppConstants.appwriteApiKey);
   }
   
   Client get client => _client;
