@@ -24,11 +24,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   return GoRouter(
     initialLocation: RouteConstants.splash,
     redirect: (context, state) {
-      final isAuthenticated = authState.whenOrNull(
-        data: (auth) => auth.session != null,
-      ) ?? false;
-      
-      final isLoading = authState.isLoading;
+      final isAuthenticated = authState.session != null;
       final currentPath = state.uri.path;
       
       final publicRoutes = [
@@ -39,8 +35,6 @@ final routerProvider = Provider<GoRouter>((ref) {
       ];
       
       final isPublicRoute = publicRoutes.contains(currentPath);
-      
-      if (isLoading) return null;
       
       if (!isAuthenticated && !isPublicRoute) {
         return RouteConstants.welcome;

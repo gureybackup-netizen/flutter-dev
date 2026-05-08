@@ -19,36 +19,14 @@ final callServiceProvider = Provider((ref) => CallService());
 
 final supabaseClientProvider = Provider((ref) => Supabase.instance.client);
 
-final authStateProvider = StreamProvider<AuthState>((ref) {
-  final controller = StreamController<AuthState>();
-  
-  void emitCurrentState() {
-    final session = Supabase.instance.client.auth.currentSession;
-    final state = AuthState(AuthChangeEvent.signedIn, session);
-    if (!controller.isClosed) {
-      controller.add(state);
-    }
-  }
-  
-  emitCurrentState();
-  
-  final timer = Timer.periodic(const Duration(seconds: 2), (_) {
-    emitCurrentState();
-  });
-  
-  ref.onDispose(() {
-    timer.cancel();
-    controller.close();
-  });
-  
-  return controller.stream;
+final authStateProvider = Provider<AuthState>((ref) {
+  final session = Supabase.instance.client.auth.currentSession;
+  return AuthState(session != null ? AuthChangeEvent.signedIn : AuthChangeEvent.initialSession, session);
 });
 
 final currentUserIdProvider = Provider<String?>((ref) {
-  final authAsync = ref.watch(authStateProvider);
-  return authAsync.whenOrNull(
-    data: (state) => state.session?.user.id,
-  );
+  final authState = ref.watch(authStateProvider);
+  return authState.session?.user.id;
 });
 
 final currentUserProvider = FutureProvider<VardUser?>((ref) async {
