@@ -1,5 +1,7 @@
+import 'dart:convert';
 import 'dart:async';
 import 'package:flutter_webrtc/flutter_webrtc.dart';
+import 'package:http/http.dart' as http;
 import '../core/constants.dart';
 import 'appwrite_service.dart';
 
@@ -8,6 +10,7 @@ class CallService {
   MediaStream? _localStream;
   MediaStream? _remoteStream;
   String? _currentCallId;
+  List<Map<String, dynamic>>? _cachedIceServers;
 
   Future<String?> initiateCall({
     required String conversationId,
@@ -37,7 +40,7 @@ class CallService {
         },
       );
       
-      // Create peer connection
+      // Create peer connection with ICE servers from OpenRelay
       await _createPeerConnection();
       
       // Add local stream
@@ -74,11 +77,42 @@ class CallService {
     }
   }
   
-  Future<void> _createPeerConnection() async {
-    final configuration = <String, dynamic>{
-      'iceServers': [
+  Future<List<Map<String, dynamic>>> _getIceServers() async {
+    // Return cached servers if available and not expired (cache for 12 hours)
+    if (_cachedIceServers != null) {
+      return _cachedIceServers!;
+    }
+    
+    try {
+      final response = await http.get(
+        Uri.parse('https://openrelayproject.com/credentials'),
+      ).timeout(const Duration(seconds: 5));
+      
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final iceServers = List<Map<String, dynamic>>.from(data['iceServers']);
+        
+        // Cache the servers
+        _cachedIceServers = iceServers;
+        
+        return iceServers;
+      } else {
+        throw Exception('Failed to fetch ICE servers');
+      }
+    } catch (e) {
+      // Fallback to public STUN servers if OpenRelay fails
+      return [
         {'url': 'stun:stun.l.google.com:19302'},
-      ],
+        {'url': 'stun:stun1.l.google.com:19302'},
+        {'url': 'stun:stun2.l.google.com:19302'},
+      ];
+    }
+  }
+  
+  Future<void> _createPeerConnection() async {
+    final iceServers = await _getIceServers();
+    final configuration = <String, dynamic>{
+      'iceServers': iceServers,
     };
     
     _peerConnection = await createPeerConnection(configuration);
@@ -96,6 +130,10 @@ class CallService {
           'sdpMLineIndex': candidate.sdpMLineIndex ?? 0,
         },
       );
+    };
+    
+    _peerConnection!.onIceConnectionState = (state) {
+      // Handle connection state changes if needed
     };
     
     _peerConnection!.onTrack = (event) {

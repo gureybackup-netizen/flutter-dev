@@ -78,4 +78,12 @@ final messagesProvider = FutureProvider.family<List<Map<String, dynamic>>, Strin
   return await appwrite.getMessages(conversationId);
 });
 
+final callHistoryProvider = FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final userId = await ref.watch(currentUserIdProvider.future);
+  if (userId == null) return [];
+
+  final appwrite = ref.watch(appwriteServiceProvider);
+  return await appwrite.getCallHistory(userId);
+});
+
 final themeProvider = StateProvider<String>((ref) => 'dark');

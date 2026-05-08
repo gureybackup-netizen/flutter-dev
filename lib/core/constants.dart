@@ -33,6 +33,7 @@ class RouteConstants {
   static const String callHistory = '/calls/history';
   static const String notificationSettings = '/settings/notifications';
   static const String securitySettings = '/settings/security';
+  static const String notifications = '/notifications';
 }
 
 class DatabaseConstants {

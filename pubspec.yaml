@@ -26,6 +26,8 @@ dependencies:
 
   # WebRTC
   flutter_webrtc: ^0.12.9
+  # HTTP
+  http: ^1.2.2
 
   # Call UI
   flutter_callkit_incoming: ^2.0.4
@@ -41,7 +43,6 @@ dependencies:
 
   # Time formatting
   timeago: ^3.7.0
-  pointycastle: ^4.0.0
 
 dev_dependencies:
   flutter_test:

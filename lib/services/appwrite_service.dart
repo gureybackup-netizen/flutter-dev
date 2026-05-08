@@ -1,6 +1,7 @@
 import 'package:appwrite/appwrite.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../core/constants.dart';
+import '../services/crypto_service.dart';
 
 class AppwriteService {
   late Client _client;
@@ -32,6 +33,11 @@ class AppwriteService {
   
   Future<String?> createUser({required String uniqueId, required String displayName}) async {
     try {
+      // Generate and store key pair for this user
+      final cryptoService = CryptoService();
+      await cryptoService.generateAndStoreKeyPair();
+      final publicKey = await cryptoService.getPublicKeyBase64();
+      
       await databases.createDocument(
         databaseId: AppConstants.databaseId,
         collectionId: AppConstants.usersCollectionId,
@@ -39,6 +45,7 @@ class AppwriteService {
         data: {
           'unique_id': uniqueId,
           'display_name': displayName,
+          'public_key': publicKey,
           'created_at': DateTime.now().toIso8601String(),
         },
       );
@@ -190,7 +197,38 @@ class AppwriteService {
         ],
       );
       final messages = result.documents.map((doc) => doc.data).toList();
-      return messages.where((m) => m['is_deleted_by_sender'] != true).toList();
+      
+      // Decrypt messages
+      final cryptoService = CryptoService();
+      final List<Future<Map<String, dynamic>>> decryptionFutures = [];
+      
+      for (var message in messages) {
+        if (message['is_deleted_by_sender'] == true) continue;
+        
+        final decryptedMessage = Map<String, dynamic>.from(message);
+        final encryptedContent = message['content'] as String?;
+        final senderPublicKey = message['sender_public_key'] as String?;
+        
+        if (encryptedContent != null && 
+            encryptedContent.isNotEmpty && 
+            senderPublicKey != null && 
+            senderPublicKey.isNotEmpty) {
+          // Decrypt the message
+          decryptionFutures.add(cryptoService.decryptMessage(
+            encryptedContent: encryptedContent,
+          ).then((decryptedContent) {
+            decryptedMessage['content'] = decryptedContent;
+            return decryptedMessage;
+          }));
+        } else {
+          // No decryption needed
+          decryptionFutures.add(Future.value(decryptedMessage));
+        }
+      }
+      
+      final decryptedMessages = await Future.wait(decryptionFutures);
+      
+      return decryptedMessages;
     } catch (e) {
       return [];
     }
@@ -204,23 +242,12 @@ class AppwriteService {
     try {
       final messageId = DateTime.now().millisecondsSinceEpoch.toString();
       
-      // Save the message
-      await databases.createDocument(
-        databaseId: AppConstants.databaseId,
-        collectionId: AppConstants.messagesCollectionId,
-        documentId: messageId,
-        data: {
-          'id': messageId,
-          'conversation_id': conversationId,
-          'sender_id': senderId,
-          'content': content,
-          'sent_at': DateTime.now().toIso8601String(),
-          'is_read': false,
-          'is_deleted_by_sender': false,
-        },
-      );
+      // Get sender's public key for encryption (will be used by recipient)
+      final cryptoService = CryptoService();
+      await cryptoService.generateAndStoreKeyPair();
+      final senderPublicKey = await cryptoService.getPublicKeyBase64();
       
-      // Update conversation metadata
+      // Get recipient's public key to encrypt message for them
       final conversationDoc = await databases.getDocument(
         databaseId: AppConstants.databaseId,
         collectionId: AppConstants.conversationsCollectionId,
@@ -234,7 +261,36 @@ class AppwriteService {
         orElse: () => '',
       );
       
-      // Update conversation
+      final recipientUser = await getUserByUniqueId(recipientId);
+      final recipientPublicKey = recipientUser?['public_key'] as String?;
+      
+      String encryptedContent = content;
+      if (recipientPublicKey != null && recipientPublicKey.isNotEmpty) {
+        // Encrypt the message for the recipient
+        encryptedContent = await cryptoService.encryptMessage(
+          recipientPublicKeyBase64: recipientPublicKey,
+          plaintext: content,
+        );
+      }
+      
+      // Save the message
+      await databases.createDocument(
+        databaseId: AppConstants.databaseId,
+        collectionId: AppConstants.messagesCollectionId,
+        documentId: messageId,
+        data: {
+          'id': messageId,
+          'conversation_id': conversationId,
+          'sender_id': senderId,
+          'content': encryptedContent,
+          'sender_public_key': senderPublicKey, // Store sender's public key for recipient to use
+          'sent_at': DateTime.now().toIso8601String(),
+          'is_read': false,
+          'is_deleted_by_sender': false,
+        },
+      );
+      
+      // Update conversation metadata
       await databases.updateDocument(
         databaseId: AppConstants.databaseId,
         collectionId: AppConstants.conversationsCollectionId,
@@ -246,7 +302,7 @@ class AppwriteService {
         },
       );
       
-// Save notification for recipient
+      // Save notification for recipient
       await _saveNotification(
         recipientId: recipientId,
         type: 'message',
@@ -254,7 +310,7 @@ class AppwriteService {
         body: 'You have a new message',
         conversationId: conversationId,
       );
-
+      
       return messageId;
     } catch (e) {
       return null;
